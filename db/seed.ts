@@ -62,19 +62,26 @@ export async function seed() {
     throw new Error("SEED_ADMIN_* must not be set in production");
   }
   if (seedEmail && seedPassword && process.env.NODE_ENV !== "production") {
-    const { auth } = await import("../lib/auth");
-    try {
-      const res = await auth.api.signUpEmail({
-        body: { email: seedEmail, password: seedPassword, name: "Store Admin" },
+    const { hashPassword, newUserId } = await import("../lib/auth");
+    const existing = await db.select().from(users).where(eq(users.email, seedEmail)).limit(1);
+    if (existing[0]) {
+      adminId = existing[0].id;
+      // Force-reset policy: ensure the dev admin has a bcrypt hash.
+      await db
+        .update(users)
+        .set({ passwordHash: await hashPassword(seedPassword) })
+        .where(eq(users.id, adminId));
+      console.log(`Seed admin exists: ${seedEmail}`);
+    } else {
+      adminId = newUserId();
+      await db.insert(users).values({
+        id: adminId,
+        email: seedEmail,
+        name: "Store Admin",
+        passwordHash: await hashPassword(seedPassword),
+        emailVerified: true,
       });
-      adminId = (res as { user?: { id?: string } })?.user?.id ?? adminId;
       console.log(`Seed admin created: ${seedEmail}`);
-    } catch {
-      const existing = await db.select().from(users).where(eq(users.email, seedEmail)).limit(1);
-      if (existing[0]) {
-        adminId = existing[0].id;
-        console.log(`Seed admin exists: ${seedEmail}`);
-      }
     }
     if (adminId) {
       await db

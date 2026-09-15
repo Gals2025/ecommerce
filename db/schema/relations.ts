@@ -3,8 +3,7 @@ import {
   users,
   roles,
   userRoles,
-  sessions,
-  accounts,
+  refreshSessions,
 } from "./auth";
 import {
   products,
@@ -32,8 +31,7 @@ import {
 
 export const usersRelations = relations(users, ({ many, one }) => ({
   roles: many(userRoles),
-  sessions: many(sessions),
-  accounts: many(accounts),
+  refreshSessions: many(refreshSessions),
   customer: one(customers, { fields: [users.id], references: [customers.userId] }),
   orders: many(orders),
   carts: many(carts),

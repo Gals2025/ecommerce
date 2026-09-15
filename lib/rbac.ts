@@ -1,16 +1,71 @@
-import { headers } from "next/headers";
-import { auth, type AppRole } from "./auth";
+import { cookies } from "next/headers";
+import {
+  ACCESS_COOKIE,
+  REFRESH_COOKIE,
+  REFRESH_TTL_SECONDS,
+  hashToken,
+  newRefreshToken,
+  signAccessToken,
+  verifyAccessToken,
+  type AppRole,
+} from "./auth";
 import { db } from "@/db";
-import { userRoles, roles } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { refreshSessions, userRoles, roles, users } from "@/db/schema";
+import { and, eq, isNull } from "drizzle-orm";
 import { rolesHavePermission, type Permission } from "./permissions";
 
-export async function getSession() {
-  return auth.api.getSession({ headers: await headers() });
+export type { AppRole };
+
+export type Session = { user: { id: string; email: string; name: string } };
+
+async function rotateRefresh(userId: string, rawRefresh: string) {
+  const [row] = await db
+    .select()
+    .from(refreshSessions)
+    .where(eq(refreshSessions.tokenHash, hashToken(rawRefresh)))
+    .limit(1);
+  if (!row || row.revokedAt || row.expiresAt < new Date() || row.userId !== userId) return null;
+  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!user || user.deletedAt) return null;
+  // Rotate: revoke old, insert new.
+  await db
+    .update(refreshSessions)
+    .set({ revokedAt: new Date() })
+    .where(eq(refreshSessions.id, row.id));
+  const next = newRefreshToken();
+  await db.insert(refreshSessions).values({
+    userId,
+    tokenHash: hashToken(next),
+    expiresAt: new Date(Date.now() + REFRESH_TTL_SECONDS * 1000),
+  });
+  const access = await signAccessToken({ sub: user.id, email: user.email, name: user.name });
+  return { access, next, user };
+}
+
+export async function getSession(): Promise<Session | null> {
+  const store = await cookies();
+  const access = store.get(ACCESS_COOKIE)?.value;
+  if (access) {
+    const claims = await verifyAccessToken(access);
+    if (claims) return { user: { id: claims.sub, email: claims.email, name: claims.name } };
+  }
+  // Fallback: try refresh rotation (issues new pair via cookie update in route only;
+  // server components just resolve the session without setting cookies).
+  const rawRefresh = store.get(REFRESH_COOKIE)?.value;
+  if (!rawRefresh) return null;
+  const [row] = await db
+    .select()
+    .from(refreshSessions)
+    .where(and(eq(refreshSessions.tokenHash, hashToken(rawRefresh)), isNull(refreshSessions.revokedAt)))
+    .limit(1);
+  if (!row || row.expiresAt < new Date()) return null;
+  const [user] = await db.select().from(users).where(eq(users.id, row.userId)).limit(1);
+  if (!user || user.deletedAt) return null;
+  return { user: { id: user.id, email: user.email, name: user.name } };
 }
 
 // Authenticated user or throw. Use for any customer-or-staff action.
-export async function requireUser() {
+export async function requireUser(): Promise<Session> {
   const session = await getSession();
   if (!session?.user) throw new Error("Unauthorized");
   return session;
@@ -64,4 +119,15 @@ export async function requireAdmin() {
 
 export async function requireStaff() {
   return requireRole(["ORDER_STAFF", "INVENTORY_STAFF", "ADMIN", "SUPER_ADMIN"]);
+}
+
+// Used by /api/auth/refresh route to rotate and return fresh tokens.
+export async function rotateSessionFromRefresh(rawRefresh: string) {
+  const [row] = await db
+    .select()
+    .from(refreshSessions)
+    .where(eq(refreshSessions.tokenHash, hashToken(rawRefresh)))
+    .limit(1);
+  if (!row || row.revokedAt || row.expiresAt < new Date()) return null;
+  return rotateRefresh(row.userId, rawRefresh);
 }

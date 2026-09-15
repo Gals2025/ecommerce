@@ -1,7 +1,6 @@
-import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
+import bcrypt from "bcryptjs";
+import { SignJWT, jwtVerify } from "jose";
 
 export type AppRole =
   | "SUPER_ADMIN"
@@ -10,58 +9,72 @@ export type AppRole =
   | "ORDER_STAFF"
   | "CUSTOMER";
 
-if (!process.env.BETTER_AUTH_SECRET) {
-  throw new Error("BETTER_AUTH_SECRET is required (see .env.example)");
+export const ACCESS_COOKIE = "access_token";
+export const REFRESH_COOKIE = "refresh_token";
+export const ACCESS_TTL_SECONDS = Number(process.env.JWT_ACCESS_TTL ?? 900); // 15m
+export const REFRESH_TTL_SECONDS = Number(process.env.JWT_REFRESH_TTL ?? 604800); // 7d
+const BCRYPT_ROUNDS = 12;
+
+function getSecret(): Uint8Array {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error("JWT_SECRET is required (see .env.example)");
+  return new TextEncoder().encode(secret);
 }
 
-export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL,
-  secret: process.env.BETTER_AUTH_SECRET,
-  emailAndPassword: {
-    enabled: true,
-    requireEmailVerification: false, // MVP: verification email is a later phase
-    sendResetPassword: async ({ user, token }) => {
-      const { queueEmail } = await import("./email");
-      const { passwordResetEmail } = await import("@/emails");
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
-      const { subject, html } = passwordResetEmail(`${appUrl}/reset-password?token=${token}`);
-      // Queued, never throws for delivery failures: a mail outage must not
-      // break the reset request itself.
-      await queueEmail({ to: user.email, template: "password_reset", subject, html, userId: user.id });
-    },
-  },
-  session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7 days
-    updateAge: 60 * 60 * 24, // refresh daily
-    cookieCache: { enabled: true, maxAge: 60 * 5 },
-  },
-  rateLimit: { enabled: true },
-  database: drizzleAdapter(db, {
-    provider: "pg",
-    schema: {
-      user: schema.users,
-      session: schema.sessions,
-      account: schema.accounts,
-      verification: schema.verifications,
-    },
-  }),
-  // Roles live in roles + user_roles (see lib/rbac.ts), not on the user row.
-  databaseHooks: {
-    user: {
-      create: {
-        // Welcome email after the account row exists. Fire-and-forget via
-        // queueEmail: sign-up never waits on or fails from Resend.
-        after: async (user) => {
-          try {
-            const { queueEmail } = await import("./email");
-            const { welcomeEmail } = await import("@/emails");
-            const { subject, html } = welcomeEmail(user.name ?? "there");
-            await queueEmail({ to: user.email, template: "welcome", subject, html, userId: user.id });
-          } catch (err) {
-            console.error("[email:welcome] failed to queue", (err as Error)?.message ?? err);
-          }
-        },
-      },
-    },
-  },
-});
+export type AccessClaims = { sub: string; email: string; name: string };
+
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, BCRYPT_ROUNDS);
+}
+
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  try {
+    return await bcrypt.compare(password, hash);
+  } catch {
+    return false;
+  }
+}
+
+export async function signAccessToken(claims: AccessClaims): Promise<string> {
+  return new SignJWT({ email: claims.email, name: claims.name })
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject(claims.sub)
+    .setIssuedAt()
+    .setExpirationTime(`${ACCESS_TTL_SECONDS}s`)
+    .sign(getSecret());
+}
+
+export async function verifyAccessToken(token: string): Promise<AccessClaims | null> {
+  try {
+    const { payload } = await jwtVerify(token, getSecret(), { algorithms: ["HS256"] });
+    if (typeof payload.sub !== "string") return null;
+    return {
+      sub: payload.sub,
+      email: String(payload.email ?? ""),
+      name: String(payload.name ?? ""),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function newRefreshToken(): string {
+  return randomBytes(32).toString("hex");
+}
+
+export function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+export function newUserId(): string {
+  return `user_${randomUUID()}`;
+}
+
+export function cookieFlags(isRefreshPath = false) {
+  return {
+    httpOnly: true as const,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: isRefreshPath ? "/api/auth" : "/",
+  };
+}

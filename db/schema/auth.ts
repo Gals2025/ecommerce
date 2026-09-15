@@ -8,7 +8,9 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-// Better Auth core tables (PostgreSQL). text PKs required by the adapter.
+// JWT Auth tables (PostgreSQL). Passwords hashed with bcrypt (12 rounds);
+// sessions are stateless access JWTs (15m) + opaque refresh tokens (7d)
+// stored hashed in refresh_sessions with rotation.
 export const users = pgTable(
   "users",
   {
@@ -17,6 +19,7 @@ export const users = pgTable(
     email: text("email").notNull().unique(),
     emailVerified: boolean("email_verified").notNull().default(false),
     image: text("image"),
+    passwordHash: text("password_hash"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -24,53 +27,41 @@ export const users = pgTable(
   (t) => [index("users_email_idx").on(t.email)]
 );
 
-export const sessions = pgTable(
-  "sessions",
+export const refreshSessions = pgTable(
+  "refresh_sessions",
   {
-    id: text("id").primaryKey(),
+    id: uuid("id").primaryKey().defaultRandom(),
+    tokenHash: text("token_hash").notNull().unique(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    token: text("token").notNull().unique(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
   },
-  (t) => [index("sessions_user_id_idx").on(t.userId)]
+  (t) => [index("refresh_sessions_user_id_idx").on(t.userId)]
 );
 
-export const accounts = pgTable(
-  "accounts",
+export const passwordResetTokens = pgTable(
+  "password_reset_tokens",
   {
-    id: text("id").primaryKey(),
-    accountId: text("account_id").notNull(),
-    providerId: text("provider_id").notNull(),
+    id: uuid("id").primaryKey().defaultRandom(),
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    accessToken: text("access_token"),
-    refreshToken: text("refresh_token"),
-    idToken: text("id_token"),
-    accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
-    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
-    scope: text("scope"),
-    password: text("password"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("accounts_user_id_idx").on(t.userId)]
+  (t) => [index("password_reset_tokens_user_id_idx").on(t.userId)]
 );
 
-export const verifications = pgTable("verifications", {
-  id: text("id").primaryKey(),
-  identifier: text("identifier").notNull(),
-  value: text("value").notNull(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-});
+// NOTE: Better Auth tables (sessions, accounts, verifications) were dropped
+// in migration 0012 (force-reset policy: all users set a new bcrypt password
+// via forgot-password).
 
 // Authorization: multi-role via join table. Canonical roles:
 // customer | cs | inventory | staff | admin | superadmin
