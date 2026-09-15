@@ -41,7 +41,7 @@ export function DateFilter({
           <Link
             key={p.label}
             href={qs({ from: p.f, to: p.t })}
-            className={`rounded border px-2 py-1 hover:bg-gray-50 ${from === p.f && to === p.t ? "bg-black text-white" : ""}`}
+            className={`rounded-full border px-2.5 py-1 transition ${from === p.f && to === p.t ? "border-emerald-700 bg-emerald-700 font-medium text-white" : "border-stone-200 bg-white text-stone-600 hover:bg-stone-50"}`}
           >
             {p.label}
           </Link>
@@ -61,7 +61,7 @@ export function DateFilter({
         <input type="date" name="from" defaultValue={from} className="rounded border px-2 py-1" />
         <span>→</span>
         <input type="date" name="to" defaultValue={to} className="rounded border px-2 py-1" />
-        <button type="submit" className="rounded border px-2 py-1 hover:bg-gray-50">Apply</button>
+        <button type="submit" className="rounded-full border border-stone-200 bg-white px-3 py-1 transition hover:bg-stone-50">Apply</button>
       </form>
     </div>
   );

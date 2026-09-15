@@ -1,4 +1,4 @@
-// Full demo seed: roles → admin → tiers → locations → shipping → catalog →
+// Full pickle seed: roles → admin → tiers → locations → shipping → catalog →
 // balances+movements → promos → customer → order lifecycle → settings.
 // Idempotent: reruns are safe via onConflictDoNothing + pre-checks.
 import { db } from "./index";
@@ -77,7 +77,7 @@ export async function seed() {
       await db.insert(users).values({
         id: adminId,
         email: seedEmail,
-        name: "Store Admin",
+        name: "Pickle Admin",
         passwordHash: await hashPassword(seedPassword),
         emailVerified: true,
       });
@@ -129,28 +129,26 @@ export async function seed() {
   for (const m of methods) await db.insert(shippingMethods).values(m).onConflictDoNothing();
 
   // 6. Catalog: brand + category + product + attributes + variants + images
-  await db.insert(brands).values({ name: "Demo Brand", slug: "demo-brand" }).onConflictDoNothing();
-  await db.insert(categories).values({ name: "Demo Category", slug: "demo-category", description: "Seeded demo category" }).onConflictDoNothing();
-  const brand = (await db.select().from(brands).where(eq(brands.slug, "demo-brand")).limit(1))[0];
-  const category = (await db.select().from(categories).where(eq(categories.slug, "demo-category")).limit(1))[0];
+  await db.insert(brands).values({ name: "Pickle Unltd", slug: "pickle-unltd" }).onConflictDoNothing();
+  await db.insert(categories).values({ name: "Classic Dill", slug: "classic-dill", description: "Seeded classic dill category" }).onConflictDoNothing();
+  const brand = (await db.select().from(brands).where(eq(brands.slug, "pickle-unltd")).limit(1))[0];
+  const category = (await db.select().from(categories).where(eq(categories.slug, "classic-dill")).limit(1))[0];
 
-  const existingProducts = await db.select().from(products).where(eq(products.slug, "demo-shirt")).limit(1);
+  const existingProducts = await db.select().from(products).where(eq(products.slug, "classic-dill-pickles")).limit(1);
   let productId: string;
   if (existingProducts.length === 0) {
     const [p] = await db
       .insert(products)
-      .values({ name: "Demo Shirt", slug: "demo-shirt", description: "Seeded demo product", brandId: brand.id, categoryId: category.id, basePrice: 99900 })
+      .values({ name: "Classic Dill Pickles", slug: "classic-dill-pickles", description: "Seeded classic dill jar pickles", brandId: brand.id, categoryId: category.id, basePrice: 34900 })
       .returning();
     productId = p.id;
-    await db.insert(productImages).values({ productId, url: "https://example.ph/demo-shirt.jpg", alt: "Demo Shirt", sortOrder: 0 });
+    await db.insert(productImages).values({ productId, url: "https://example.ph/classic-dill-pickles.jpg", alt: "Classic Dill Pickles", sortOrder: 0 });
     const [sizeAttr] = await db.insert(productAttributes).values({ productId, name: "Size" }).returning();
-    const [colorAttr] = await db.insert(productAttributes).values({ productId, name: "Color" }).returning();
-    const [sizeM] = await db.insert(productAttributeValues).values({ attributeId: sizeAttr.id, value: "M" }).returning();
-    const [sizeL] = await db.insert(productAttributeValues).values({ attributeId: sizeAttr.id, value: "L" }).returning();
-    const [colorRed] = await db.insert(productAttributeValues).values({ attributeId: colorAttr.id, value: "Red" }).returning();
+    const [sizeS] = await db.insert(productAttributeValues).values({ attributeId: sizeAttr.id, value: "250ml" }).returning();
+    const [sizeL] = await db.insert(productAttributeValues).values({ attributeId: sizeAttr.id, value: "500ml" }).returning();
     const variantDefs = [
-      { sku: "DEMO-SHIRT-RED-M", name: "Red / M", values: [colorRed.id, sizeM.id], price: null as number | null, stock: 100 },
-      { sku: "DEMO-SHIRT-RED-L", name: "Red / L", values: [colorRed.id, sizeL.id], price: 109900, stock: 50 },
+      { sku: "PICKLE-DILL-250", name: "250ml", values: [sizeS.id], price: null as number | null, stock: 100 },
+      { sku: "PICKLE-DILL-500", name: "500ml", values: [sizeL.id], price: 54900, stock: 50 },
     ];
     for (const v of variantDefs) {
       const [variant] = await db.insert(productVariants).values({ productId, sku: v.sku, name: v.name, priceOverride: v.price }).returning();
@@ -181,17 +179,17 @@ export async function seed() {
   // Note: image URLs here are placeholders; real Vercel Blob uploads are
   // exercised manually via /admin/products/new (see CHECKPOINT notes).
   const seedBrands = [
-    { name: "Luzon Apparel", slug: "luzon-apparel" },
-    { name: "Manila Goods", slug: "manila-goods" },
+    { name: "Manila Ferments", slug: "manila-ferments" },
+    { name: "Sili Lab", slug: "sili-lab" },
   ];
   for (const b of seedBrands) {
     await db.insert(brands).values(b).onConflictDoNothing();
   }
   const seedCategories: { name: string; slug: string; description: string; sortOrder: number; parentSlug?: string }[] = [
-    { name: "Men's Apparel", slug: "mens-apparel", description: "Tops, bottoms, outerwear for men", sortOrder: 1 },
-    { name: "Women's Apparel", slug: "womens-apparel", description: "Tops, dresses and more", sortOrder: 2 },
-    { name: "T-Shirts", slug: "t-shirts", description: "Child of Men's Apparel", sortOrder: 1, parentSlug: "mens-apparel" },
-    { name: "Accessories", slug: "accessories", description: "Bags, scarves, wallets", sortOrder: 3 },
+    { name: "Spicy Sili", slug: "spicy-sili", description: "Hot and extra-hot pickled peppers", sortOrder: 1 },
+    { name: "Sweet & Bread-and-Butter", slug: "sweet-butter", description: "Sweet brine pickles and relishes", sortOrder: 2 },
+    { name: "Garlic Dill", slug: "garlic-dill", description: "Child of Classic Dill", sortOrder: 1, parentSlug: "classic-dill" },
+    { name: "Fermented Favorites", slug: "fermented-favorites", description: "Kimchi-style and fermented vegetables", sortOrder: 3 },
   ];
   for (const c of seedCategories) {
     const parent = c.parentSlug
@@ -256,42 +254,42 @@ export async function seed() {
     variants?: { sku: string; name: string; price?: number | null; cost?: number | null; stock: number; values: string[] }[];
   };
   const seedProducts: SeedProduct[] = [
-    { name: "Classic White Tee", slug: "classic-white-tee", sku: "TEE-WHITE-001", short: "Everyday cotton tee", desc: "100% cotton everyday tee", brand: "luzon-apparel", category: "t-shirts", base: 59900, compare: 79900, cost: 30000, status: "active", featured: true, threshold: 10, weightG: 180 },
-    { name: "Slim Denim Jeans", slug: "slim-denim-jeans", sku: "JEAN-SLIM-001", short: "Slim-fit stretch denim", desc: "Slim-fit stretch denim jeans", brand: "manila-goods", category: "mens-apparel", base: 149900, compare: 189900, cost: 80000, status: "active", weightG: 650, threshold: 5 },
-    { name: "Floral Summer Dress", slug: "floral-summer-dress", sku: "DRESS-FLORAL-001", short: "Light floral dress", desc: "Lightweight floral summer dress", brand: "luzon-apparel", category: "womens-apparel", base: 129900, status: "active", featured: true, weightG: 320 },
-    { name: "Canvas Tote Bag", slug: "canvas-tote-bag", sku: "TOTE-CANVAS-001", short: "Heavy-duty canvas tote", desc: "Heavy-duty canvas tote bag", brand: "manila-goods", category: "accessories", base: 49900, cost: 22000, status: "active", weightG: 400 },
+    { name: "Garlic Dill Spears", slug: "garlic-dill-spears", sku: "DILL-GARLIC-250", short: "Crunchy garlic dill spears", desc: "Crunchy cucumber spears in garlic dill brine", brand: "pickle-unltd", category: "garlic-dill", base: 34900, compare: 42900, cost: 16000, status: "active", featured: true, threshold: 10, weightG: 450 },
+    { name: "Siling Labuyo Pickles", slug: "siling-labuyo-pickles", sku: "SILI-LABUYO-250", short: "Fiery native chili pickles", desc: "Fiery siling labuyo in cane-vinegar brine", brand: "sili-lab", category: "spicy-sili", base: 39900, compare: 47900, cost: 18000, status: "active", weightG: 350, threshold: 5 },
+    { name: "Sweet Bread-and-Butter Chips", slug: "sweet-butter-chips", sku: "SWEET-BB-250", short: "Sweet crinkle-cut chips", desc: "Sweet bread-and-butter cucumber chips", brand: "manila-ferments", category: "sweet-butter", base: 32900, status: "active", featured: true, weightG: 400 },
+    { name: "Atchara Papaya Relish", slug: "atchara-papaya-relish", sku: "ATCHARA-250", short: "Classic Filipino atchara", desc: "Classic green papaya atchara with peppers", brand: "manila-ferments", category: "sweet-butter", base: 29900, cost: 13000, status: "active", weightG: 380 },
     {
-      name: "Running Sneakers", slug: "running-sneakers", short: "Cushioned road runners", desc: "Cushioned road running sneakers",
-      brand: "luzon-apparel", category: "mens-apparel", base: 249900, compare: 299900, cost: 140000,
-      status: "active", featured: true, weightG: 900,
-      attributes: [{ name: "Size", values: ["8", "9", "10"] }, { name: "Color", values: ["Black", "White"] }],
+      name: "Spicy Dill Pickles", slug: "spicy-dill-pickles", short: "Dill with a sili kick", desc: "Classic dill brine with siling labuyo heat",
+      brand: "pickle-unltd", category: "spicy-sili", base: 36900, compare: 42900, cost: 17000,
+      status: "active", featured: true, weightG: 450,
+      attributes: [{ name: "Size", values: ["250ml", "500ml"] }, { name: "Heat", values: ["Medium", "Hot"] }],
       variants: [
-        { sku: "SNEAK-BLK-8", name: "Black / 8", price: null, cost: 140000, stock: 20, values: ["Black", "8"] },
-        { sku: "SNEAK-BLK-9", name: "Black / 9", price: null, cost: 140000, stock: 25, values: ["Black", "9"] },
-        { sku: "SNEAK-WHT-10", name: "White / 10", price: 259900, cost: 145000, stock: 15, values: ["White", "10"] },
+        { sku: "SPICY-DILL-MED-250", name: "Medium / 250ml", price: null, cost: 17000, stock: 40, values: ["Medium", "250ml"] },
+        { sku: "SPICY-DILL-HOT-250", name: "Hot / 250ml", price: null, cost: 17000, stock: 35, values: ["Hot", "250ml"] },
+        { sku: "SPICY-DILL-HOT-500", name: "Hot / 500ml", price: 59900, cost: 28000, stock: 20, values: ["Hot", "500ml"] },
       ],
     },
     {
-      name: "Hooded Jacket", slug: "hooded-jacket", short: "Warm hooded jacket", desc: "Warm hooded jacket for rainy season",
-      brand: "manila-goods", category: "mens-apparel", base: 199900, cost: 110000,
-      status: "active", weightG: 1100,
-      attributes: [{ name: "Size", values: ["S", "M", "L"] }, { name: "Style", values: ["Zip", "Pullover"] }],
+      name: "Kimchi-Style Mustasa", slug: "kimchi-style-mustasa", short: "Fermented mustard greens", desc: "Fermented mustasa in kimchi-style seasoning",
+      brand: "manila-ferments", category: "fermented-favorites", base: 35900, cost: 16000,
+      status: "active", weightG: 400,
+      attributes: [{ name: "Size", values: ["250ml", "500ml"] }],
       variants: [
-        { sku: "JACKET-ZIP-M", name: "Zip / M", price: null, cost: 110000, stock: 12, values: ["Zip", "M"] },
-        { sku: "JACKET-PULL-L", name: "Pullover / L", price: 209900, cost: 115000, stock: 8, values: ["Pullover", "L"] },
+        { sku: "MUSTASA-250", name: "250ml", price: null, cost: 16000, stock: 30, values: ["250ml"] },
+        { sku: "MUSTASA-500", name: "500ml", price: 57900, cost: 26000, stock: 18, values: ["500ml"] },
       ],
     },
-    { name: "Silk Scarf", slug: "silk-scarf", sku: "SCARF-SILK-001", short: "Pure silk scarf", desc: "Pure silk scarf", brand: "demo-brand", category: "accessories", base: 89900, cost: 45000, status: "inactive", weightG: 90 },
-    { name: "Leather Wallet", slug: "leather-wallet", sku: "WALLET-LEATHER-001", short: "Full-grain bifold", desc: "Full-grain leather bifold wallet", brand: "manila-goods", category: "accessories", base: 79900, compare: 99900, cost: 40000, status: "active", threshold: 5, weightG: 120 },
+    { name: "Pickled Red Onions", slug: "pickled-red-onions", sku: "ONION-RED-250", short: "Bright pink pickled onions", desc: "Quick-pickled red onions for silog and tacos", brand: "pickle-unltd", category: "fermented-favorites", base: 27900, cost: 12000, status: "inactive", weightG: 300 },
+    { name: "Burong Mangga", slug: "burong-mangga", sku: "MANGGA-250", short: "Fermented green mango", desc: "Burong mangga with a salty-sour brine", brand: "manila-ferments", category: "fermented-favorites", base: 31900, compare: 37900, cost: 14000, status: "active", threshold: 5, weightG: 380 },
     {
-      name: "Kids Graphic Tee", slug: "kids-graphic-tee", short: "Fun prints for kids", desc: "Soft cotton graphic tee for kids",
-      brand: "luzon-apparel", category: "t-shirts", base: 39900, cost: 18000,
-      status: "draft", weightG: 140,
-      attributes: [{ name: "Style", values: ["Cartoon", "Dino"] }, { name: "Size", values: ["XS", "S", "M"] }],
+      name: "Jalapeño Nacho Slices", slug: "jalapeno-nacho-slices", short: "Nacho-style jalapeños", desc: "Pickled jalapeño slices for nachos and burgers",
+      brand: "sili-lab", category: "spicy-sili", base: 38900, cost: 17500,
+      status: "draft", weightG: 350,
+      attributes: [{ name: "Heat", values: ["Medium", "Hot"] }, { name: "Size", values: ["250ml", "500ml"] }],
       variants: [
-        { sku: "KIDTEE-CARTOON-XS", name: "Cartoon / XS", price: null, cost: 18000, stock: 30, values: ["Cartoon", "XS"] },
-        { sku: "KIDTEE-DINO-S", name: "Dino / S", price: null, cost: 18000, stock: 30, values: ["Dino", "S"] },
-        { sku: "KIDTEE-DINO-M", name: "Dino / M", price: 42900, cost: 19000, stock: 20, values: ["Dino", "M"] },
+        { sku: "JAL-MED-250", name: "Medium / 250ml", price: null, cost: 17500, stock: 25, values: ["Medium", "250ml"] },
+        { sku: "JAL-HOT-250", name: "Hot / 250ml", price: null, cost: 17500, stock: 25, values: ["Hot", "250ml"] },
+        { sku: "JAL-HOT-500", name: "Hot / 500ml", price: 61900, cost: 29000, stock: 15, values: ["Hot", "500ml"] },
       ],
     },
   ];
@@ -356,24 +354,24 @@ export async function seed() {
     autoPromoId = auto.id;
     const [code] = await db
       .insert(promotions)
-      .values({ name: "Seed Welcome Code", description: "₱100 off demo product lines", type: "code", kind: "fixed", value: 10000, minSpend: 50000, priority: 10 })
+      .values({ name: "Seed Welcome Code", description: "₱100 off pickle product lines", type: "code", kind: "fixed", value: 10000, minSpend: 50000, priority: 10 })
       .returning();
     await db.insert(promotionCodes).values({ promotionId: code.id, code: "WELCOME10", usageLimit: 1000 }).onConflictDoNothing();
     await db.insert(promotionProducts).values({ promotionId: code.id, productId }).onConflictDoNothing();
 
-    // 20% line promo scoped to the demo product (line stage, exclusive).
+    // 20% line promo scoped to the seed pickle product (line stage, exclusive).
     const [line20] = await db
       .insert(promotions)
-      .values({ name: "Seed 20% Demo Line", description: "20% off demo-product lines", type: "auto", kind: "percent", value: 20, minSpend: 0, priority: 5, stackable: false })
+      .values({ name: "Seed 20% Pickle Line", description: "20% off seed pickle lines", type: "auto", kind: "percent", value: 20, minSpend: 0, priority: 5, stackable: false })
       .returning();
     await db.insert(promotionProducts).values({ promotionId: line20.id, productId }).onConflictDoNothing();
 
-    // Buy 2 Get 1 on the demo variant (stackable line promo).
-    const demoVar = (await db.select().from(productVariants).where(eq(productVariants.sku, "DEMO-SHIRT-RED-M")).limit(1))[0];
+    // Buy 2 Get 1 on the seed pickle variant (stackable line promo).
+    const demoVar = (await db.select().from(productVariants).where(eq(productVariants.sku, "PICKLE-DILL-250")).limit(1))[0];
     if (demoVar) {
       const [bogo] = await db
         .insert(promotions)
-        .values({ name: "Seed BOGO Demo", description: "Buy 2 get 1 free (demo variant)", type: "auto", kind: "bogo", value: 0, config: { buyVariantId: demoVar.id, buyQty: 2, getQty: 1, getPct: 100 }, minSpend: 0, priority: 3, stackable: true })
+        .values({ name: "Seed BOGO Pickle", description: "Buy 2 get 1 free (seed pickle jar)", type: "auto", kind: "bogo", value: 0, config: { buyVariantId: demoVar.id, buyQty: 2, getQty: 1, getPct: 100 }, minSpend: 0, priority: 3, stackable: true })
         .returning();
       await db.insert(promotionVariants).values({ promotionId: bogo.id, variantId: demoVar.id }).onConflictDoNothing();
     }
@@ -395,12 +393,12 @@ export async function seed() {
   }
   void autoPromoId;
 
-  // 9. Demo customer + address + membership + order lifecycle
+  // 9. Pickle customer + address + membership + order lifecycle
   const custEmail = "customer@example.ph";
   const existingUser = await db.select().from(users).where(eq(users.email, custEmail)).limit(1);
   let custUserId: string;
   if (existingUser.length === 0) {
-    const [u] = await db.insert(users).values({ id: `seed-cust-${Date.now()}`, name: "Demo Customer", email: custEmail, emailVerified: true }).returning();
+    const [u] = await db.insert(users).values({ id: `seed-cust-${Date.now()}`, name: "Pickle Customer", email: custEmail, emailVerified: true }).returning();
     custUserId = u.id;
   } else {
     custUserId = existingUser[0].id;
@@ -414,7 +412,7 @@ export async function seed() {
     await db.insert(customerAddresses).values({
       customerId,
       label: "Home",
-      recipient: "Demo Customer",
+      recipient: "Pickle Customer",
       mobile: "09171234567",
       region: "NCR",
       province: "Metro Manila",
@@ -448,13 +446,13 @@ export async function seed() {
         activatedAt: new Date(),
       }).onConflictDoNothing();
     }
-    const demoVariant = (await db.select().from(productVariants).where(eq(productVariants.sku, "DEMO-SHIRT-RED-M")).limit(1))[0];
+    const demoVariant = (await db.select().from(productVariants).where(eq(productVariants.sku, "PICKLE-DILL-250")).limit(1))[0];
     if (demoVariant) {
       await db.insert(memberPrices).values({
         tierId: goldTier.id,
         variantId: demoVariant.id,
         productId: null,
-        price: 89900, // explicit Gold price (< 99900 base)
+        price: 29900, // explicit Gold price (< 34900 base)
       }).onConflictDoNothing();
     }
   }
@@ -473,11 +471,11 @@ export async function seed() {
           paymentStatus: "paid",
           fulfillmentStatus: "unfulfilled",
           currency: "PHP",
-          subtotal: 99900,
+          subtotal: 34900,
           discountMember: 0,
-          discountPromo: 9990,
+          discountPromo: 3490,
           deliveryFee: 0,
-          grandTotal: 89910,
+          grandTotal: 31410,
           fulfillment: "pickup",
           snapshotTier: "Regular",
           promoCode: null,
@@ -486,30 +484,30 @@ export async function seed() {
       await db.insert(orderItems).values({
         orderId: order.id,
         variantId: v.id,
-        productName: "Demo Shirt",
+        productName: "Classic Dill Pickles",
         sku: v.sku,
         variantName: v.name,
-        originalUnitPrice: 99900,
-        effectiveUnitPrice: 89910,
-        discountAmount: 9990,
+        originalUnitPrice: 34900,
+        effectiveUnitPrice: 31410,
+        discountAmount: 3490,
         quantity: 1,
-        lineTotal: 89910,
+        lineTotal: 31410,
       });
       await db.insert(orderStatusHistory).values([
         { orderId: order.id, fromStatus: null, toStatus: "pending", actorId: custUserId, note: "Seed order created" },
         { orderId: order.id, fromStatus: "pending", toStatus: "confirmed", actorId: adminId ?? custUserId, note: "Seed payment verified" },
       ]);
-      await db.insert(payments).values({ orderId: order.id, method: "cod", amount: 89910, status: "verified", verifiedBy: adminId ?? null, verifiedAt: new Date() });
+      await db.insert(payments).values({ orderId: order.id, method: "cod", amount: 31410, status: "verified", verifiedBy: adminId ?? null, verifiedAt: new Date() });
       const pickup = (await db.select().from(shippingMethods).where(eq(shippingMethods.code, "pickup")).limit(1))[0];
       await db.insert(shipments).values({ orderId: order.id, shippingMethodId: pickup?.id, mode: "pickup", fee: 0, notes: "Seed pickup", status: "ready" });
       const seedPromo = (await db.select().from(promotions).where(eq(promotions.name, "Seed 10% Auto")).limit(1))[0];
       if (seedPromo) {
-        await db.insert(promotionUsage).values({ promotionId: seedPromo.id, customerId: custUserId, orderId: order.id, discount: 9990 });
+        await db.insert(promotionUsage).values({ promotionId: seedPromo.id, customerId: custUserId, orderId: order.id, discount: 3490 });
       }
     }
   }
 
-  // 9c. Demo returned/refunded order: completed + delivered, one line
+  // 9c. Returned/refunded pickle order: completed + delivered, one line
   // returned+restocked, one line damaged, partial refund completed.
   const existingReturn = await db.select().from(orders).where(eq(orders.orderNo, "ORD-SEED-0002")).limit(1);
   if (existingReturn.length === 0) {
@@ -524,38 +522,38 @@ export async function seed() {
           paymentStatus: "partially_refunded",
           fulfillmentStatus: "delivered",
           currency: "PHP",
-          subtotal: 199800,
+          subtotal: 74800,
           discountMember: 0,
           discountPromo: 0,
           deliveryFee: 0,
-          grandTotal: 199800,
+          grandTotal: 74800,
           fulfillment: "delivery",
           snapshotTier: "Regular",
           promoCode: null,
         })
         .returning();
       const [oi1] = await db.insert(orderItems).values({
-        orderId: order2.id, variantId: seedVars[0].id, productName: "Demo Shirt", sku: seedVars[0].sku,
-        variantName: seedVars[0].name, originalUnitPrice: 99900, effectiveUnitPrice: 99900,
-        discountAmount: 0, quantity: 1, lineTotal: 99900,
+        orderId: order2.id, variantId: seedVars[0].id, productName: "Classic Dill Pickles", sku: seedVars[0].sku,
+        variantName: seedVars[0].name, originalUnitPrice: 34900, effectiveUnitPrice: 34900,
+        discountAmount: 0, quantity: 1, lineTotal: 34900,
       }).returning();
       const [oi2] = await db.insert(orderItems).values({
-        orderId: order2.id, variantId: seedVars[1].id, productName: "Demo Shirt", sku: seedVars[1].sku,
-        variantName: seedVars[1].name, originalUnitPrice: 99900, effectiveUnitPrice: 99900,
-        discountAmount: 0, quantity: 1, lineTotal: 99900,
+        orderId: order2.id, variantId: seedVars[1].id, productName: "Classic Dill Pickles", sku: seedVars[1].sku,
+        variantName: seedVars[1].name, originalUnitPrice: 39900, effectiveUnitPrice: 39900,
+        discountAmount: 0, quantity: 1, lineTotal: 39900,
       }).returning();
-      await db.insert(payments).values({ orderId: order2.id, method: "gcash_manual", referenceNo: "SEED-REF-001", amount: 199800, status: "verified", verifiedBy: adminId ?? null, verifiedAt: new Date() });
-      const [ret] = await db.insert(returns).values({ orderId: order2.id, reason: "Seed demo: one restock, one damaged", status: "approved" }).returning();
+      await db.insert(payments).values({ orderId: order2.id, method: "gcash_manual", referenceNo: "SEED-REF-001", amount: 74800, status: "verified", verifiedBy: adminId ?? null, verifiedAt: new Date() });
+      const [ret] = await db.insert(returns).values({ orderId: order2.id, reason: "Seed: one restock, one damaged", status: "approved" }).returning();
       await db.insert(returnItems).values({ returnId: ret.id, orderItemId: oi1.id, qty: 1, disposition: "restock" });
       await db.insert(returnItems).values({ returnId: ret.id, orderItemId: oi2.id, qty: 1, disposition: "damaged" });
-      await db.insert(refunds).values({ orderId: order2.id, returnId: ret.id, amount: 99900, method: "gcash_manual", status: "completed", reason: "Seed partial refund", processedBy: adminId ?? null });
+      await db.insert(refunds).values({ orderId: order2.id, returnId: ret.id, amount: 34900, method: "gcash_manual", status: "completed", reason: "Seed partial refund", processedBy: adminId ?? null });
     }
   }
 
   // 10. Settings
   const seedSettings: [string, unknown][] = [
-    ["store_name", { value: "Demo PH Store" }],
-    ["gcash_info", { number: "0917XXXXXXX", name: "Demo Store" }],
+    ["store_name", { value: "Pickle Unltd" }],
+    ["gcash_info", { number: "0917XXXXXXX", name: "Pickle Unltd" }],
     ["pickup_address", { value: "Makati Store, Makati City, Metro Manila" }],
   ];
   for (const [key, value] of seedSettings) {
@@ -577,6 +575,16 @@ export async function seed() {
   console.log("Seed complete: roles, admin, tiers, locations, shipping, catalog, balances, promos, customer, order, settings");
 }
 
-if (require.main === module) {
-  seed().then(() => process.exit(0));
+const isSeedDirectRun =
+  !!process.argv[1] &&
+  (process.argv[1].endsWith("db/seed.ts") || process.argv[1].endsWith("seed"));
+
+if (isSeedDirectRun) {
+  seed().then(
+    () => process.exit(0),
+    (err) => {
+      console.error(err instanceof Error ? err.message : err);
+      process.exit(1);
+    }
+  );
 }

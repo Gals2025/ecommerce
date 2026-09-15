@@ -29,24 +29,26 @@ export default async function Home() {
   const topTier = tiers.length > 0 ? tiers[tiers.length - 1] : null;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-stone-50">
       <StoreHeader categories={categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))} />
       <main className="mx-auto max-w-6xl px-4">
         {/* Hero */}
-        <section className="mt-4 overflow-hidden rounded-2xl bg-gray-900 text-white">
-          <div className="px-6 py-10 sm:px-10 sm:py-14">
-            <p className="text-xs uppercase tracking-widest text-gray-300">New season essentials</p>
-            <h1 className="mt-2 max-w-md text-2xl font-bold leading-tight sm:text-4xl">
-              Everyday quality, delivered across the Philippines
+        <section className="relative mt-4 overflow-hidden rounded-3xl border border-emerald-900/10 bg-gradient-to-br from-emerald-50 via-white to-amber-50/60 shadow-soft">
+          <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full bg-emerald-100/60 blur-3xl" aria-hidden />
+          <div className="pointer-events-none absolute -bottom-28 left-1/3 h-64 w-64 rounded-full bg-amber-100/50 blur-3xl" aria-hidden />
+          <div className="relative px-6 py-12 sm:px-12 sm:py-16">
+            <p className="inline-flex items-center gap-2 rounded-full bg-emerald-700/[0.08] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-800 ring-1 ring-inset ring-emerald-700/15">Small-batch · Made in the Philippines</p>
+            <h1 className="mt-4 max-w-xl font-display text-3xl font-semibold leading-[1.08] tracking-tight text-stone-900 sm:text-5xl">
+              Crisp, bright pickles for every Filipino table
             </h1>
-            <p className="mt-2 max-w-md text-sm text-gray-300 sm:text-base">
-              Shop apparel, accessories, and more — with member prices and nationwide delivery.
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-stone-500 sm:text-base">
+              Fermented and jarred in small batches — with member prices and nationwide delivery.
             </p>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Link href="/shop" className={cn(buttonVariants({ variant: "primary" }), "bg-white text-black hover:bg-gray-100")}>
-                Shop now
+            <div className="mt-6 flex flex-wrap gap-2.5">
+              <Link href="/shop" className={cn(buttonVariants({ variant: "primary", size: "lg" }))}>
+                Shop the pantry
               </Link>
-              <Link href="/membership" className={cn(buttonVariants({ variant: "primary" }), "border border-white/40 bg-transparent hover:bg-white/10")}>
+              <Link href="/membership" className={cn(buttonVariants({ variant: "outline", size: "lg" }))}>
                 Membership
               </Link>
             </div>
@@ -59,19 +61,19 @@ export default async function Home() {
             <SectionHeader title="Shop by category" href="/shop" />
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {categories.slice(0, 4).map((c) => (
-                <Link key={c.id} href={`/shop?categoryId=${c.id}`} className="group overflow-hidden rounded-xl border bg-white hover:shadow-md">
-                  <div className="aspect-[4/3] w-full overflow-hidden bg-gray-50">
+                <Link key={c.id} href={`/shop?categoryId=${c.id}`} className="group overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-soft transition-all hover:shadow-lift">
+                  <div className="aspect-[4/3] w-full overflow-hidden bg-stone-100">
                     {c.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={c.imageUrl} alt={c.name} loading="lazy" className="h-full w-full object-cover" />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-2xl">🛍️</div>
+                      <div className="flex h-full w-full items-center justify-center text-2xl">🥒</div>
                     )}
                   </div>
-                  <div className="p-3">
-                    <div className="text-sm font-medium">{c.name}</div>
+                  <div className="p-4">
+                    <div className="text-sm font-medium text-stone-900">{c.name}</div>
                     {c.children.length > 0 && (
-                      <div className="mt-0.5 truncate text-xs text-gray-500">{c.children.map((k) => k.name).join(" • ")}</div>
+                      <div className="mt-0.5 truncate text-xs text-stone-500">{c.children.map((k) => k.name).join(" • ")}</div>
                     )}
                   </div>
                 </Link>
@@ -112,13 +114,13 @@ export default async function Home() {
 
         {/* Promotions */}
         {promos.length > 0 && (
-          <section className="mt-8 rounded-2xl bg-amber-50 p-5 sm:p-6">
+          <section className="mt-8 rounded-3xl border border-amber-200/60 bg-amber-50 p-5 shadow-soft sm:p-6">
             <SectionHeader title="Promotions" href="/promotions" />
             <div className="grid gap-2 sm:grid-cols-2">
               {promos.slice(0, 4).map((p) => (
-                <div key={p.id} className="rounded-xl border border-amber-200 bg-white p-3 text-sm">
-                  <div className="font-medium">{p.name}</div>
-                  <div className="text-xs text-gray-600">
+                <div key={p.id} className="rounded-2xl border border-amber-200/70 bg-white p-4 text-sm shadow-sm">
+                  <div className="font-medium text-stone-900">{p.name}</div>
+                  <div className="text-xs text-stone-500">
                     {p.kind === "percent" ? `${p.value}% off` : p.kind === "fixed" ? `Save ₱${((p.value ?? 0) / 100).toFixed(2)}` : p.kind} • {p.type === "auto" ? "auto-applied" : "use code at checkout"}
                   </div>
                 </div>
@@ -128,27 +130,27 @@ export default async function Home() {
         )}
 
         {/* Membership CTA */}
-        <section className="mt-8 overflow-hidden rounded-2xl border">
+        <section className="mt-8 overflow-hidden rounded-3xl border border-stone-200/80 bg-white shadow-soft">
           <div className="grid sm:grid-cols-2">
             <div className="p-5 sm:p-8">
-              <p className="text-xs uppercase tracking-widest text-gray-500">Membership</p>
-              <h2 className="mt-1 text-xl font-bold sm:text-2xl">Unlock member prices{topTier ? ` up to ${topTier.discountPct}% off` : ""}</h2>
-              <p className="mt-2 text-sm text-gray-600">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">Membership</p>
+              <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight text-stone-900 sm:text-3xl">Unlock member prices{topTier ? ` up to ${topTier.discountPct}% off` : ""}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-stone-500">
                 Earn tiers as you shop. Higher tiers mean bigger automatic discounts on every order.
               </p>
               <Link href="/membership" className={cn(buttonVariants({ variant: "primary" }), "mt-4 inline-block")}>
                 Learn more
               </Link>
             </div>
-            <div className="bg-gray-50 p-5 sm:p-8">
+            <div className="bg-stone-50 p-5 sm:p-8">
               <div className="space-y-2 text-sm">
                 {tiers.slice(0, 4).map((t) => (
-                  <div key={t.id} className="flex items-center justify-between rounded-lg border bg-white px-3 py-2">
-                    <span className="font-medium">{t.name}</span>
-                    <span className="text-gray-600">{t.discountPct}% off</span>
+                  <div key={t.id} className="flex items-center justify-between rounded-2xl border border-stone-200/80 bg-white px-4 py-2.5 shadow-sm">
+                    <span className="font-medium text-stone-900">{t.name}</span>
+                    <span className="text-stone-500">{t.discountPct}% off</span>
                   </div>
                 ))}
-                {tiers.length === 0 && <p className="text-gray-500">Membership tiers coming soon.</p>}
+                {tiers.length === 0 && <p className="text-stone-500">Membership tiers coming soon.</p>}
               </div>
             </div>
           </div>

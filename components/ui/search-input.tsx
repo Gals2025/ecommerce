@@ -29,7 +29,7 @@ export function SearchInput({ placeholder = "Search…" }: { placeholder?: strin
       placeholder={placeholder}
       aria-label="Search"
       onChange={(e) => set({ q: e.target.value })}
-      className="w-full rounded-md border px-3 py-2 text-sm sm:max-w-xs"
+      className="w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm shadow-sm outline-none transition placeholder:text-stone-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 sm:max-w-xs"
     />
   );
 }
@@ -50,7 +50,7 @@ export function FilterBar({
       <select
         value={params.get(name) ?? ""}
         onChange={(e) => set({ [name]: e.target.value || null })}
-        className="rounded-md border px-3 py-2 text-sm"
+        className="rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm shadow-sm outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
       >
         <option value="">{label}: All</option>
         {options.map((o) => (
@@ -70,15 +70,15 @@ export function DateRangeFilter() {
         aria-label="From date"
         defaultValue={params.get("from") ?? ""}
         onChange={(e) => set({ from: e.target.value || null })}
-        className="rounded-md border px-2 py-2 text-sm"
+        className="rounded-xl border border-stone-300 bg-white px-2.5 py-2 text-sm shadow-sm outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
       />
-      <span className="text-gray-400">→</span>
+      <span className="text-stone-400">→</span>
       <input
         type="date"
         aria-label="To date"
         defaultValue={params.get("to") ?? ""}
         onChange={(e) => set({ to: e.target.value || null })}
-        className="rounded-md border px-2 py-2 text-sm"
+        className="rounded-xl border border-stone-300 bg-white px-2.5 py-2 text-sm shadow-sm outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
       />
     </div>
   );

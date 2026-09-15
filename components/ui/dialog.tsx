@@ -30,9 +30,9 @@ export function Dialog({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div ref={panelRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl outline-none">
-        <h2 className="text-lg font-semibold">{title}</h2>
+      <div className="absolute inset-0 bg-stone-950/40 backdrop-blur-[2px]" onClick={onClose} />
+      <div ref={panelRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-lift outline-none">
+        <h2 className="font-display text-xl font-semibold tracking-tight">{title}</h2>
         <div className="mt-3">{children}</div>
       </div>
     </div>
@@ -61,7 +61,7 @@ export function ConfirmationDialog({
   const descId = useId();
   return (
     <Dialog open={open} onClose={onClose} title={title}>
-      {description && <p id={descId} className="text-sm text-gray-600">{description}</p>}
+      {description && <p id={descId} className="text-sm text-stone-500">{description}</p>}
       <div className="mt-5 flex justify-end gap-2">
         <Button variant="outline" onClick={onClose}>Cancel</Button>
         <Button

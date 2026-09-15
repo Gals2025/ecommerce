@@ -9,30 +9,30 @@ export default async function MembershipPage() {
   const cats = await getCategoriesTree().catch(() => []);
   const tiers = await getMembershipTiers().catch(() => []);
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-stone-50">
       <StoreHeader categories={cats.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))} />
       <main className="mx-auto max-w-3xl px-4 py-6">
-        <h1 className="text-xl font-bold sm:text-2xl">Membership</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-stone-900 sm:text-3xl">Membership</h1>
+        <p className="mt-1 text-sm text-stone-500">
           Shop more, save more. Your lifetime spend sets your tier, and your tier discount applies automatically at checkout.
         </p>
         <div className="mt-5 space-y-2">
           {tiers.map((t, i) => (
-            <div key={t.id} className={`rounded-xl border p-4 ${i === tiers.length - 1 ? "border-black" : ""}`}>
+            <div key={t.id} className={`rounded-2xl border border-stone-200/80 bg-white p-4 shadow-soft ${i === tiers.length - 1 ? "border-emerald-700/40 ring-1 ring-emerald-700/20" : ""}`}>
               <div className="flex items-center justify-between">
-                <span className="font-semibold">{t.name}</span>
-                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-sm font-medium text-emerald-700">{t.discountPct}% off</span>
+                <span className="font-semibold text-stone-900">{t.name}</span>
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-sm font-medium text-emerald-800 ring-1 ring-inset ring-emerald-200">{t.discountPct}% off</span>
               </div>
-              <div className="mt-1 text-xs text-gray-600">
+              <div className="mt-1 text-xs text-stone-500">
                 {(t.minSpend ?? 0) > 0 ? `From ${formatPHP(t.minSpend ?? 0)} lifetime spend` : "Starting tier for every new member"}
               </div>
             </div>
           ))}
-          {tiers.length === 0 && <p className="text-sm text-gray-500">Tiers coming soon.</p>}
+          {tiers.length === 0 && <p className="text-sm text-stone-500">Tiers coming soon.</p>}
         </div>
         <div className="mt-5 flex gap-2">
-          <Link href="/shop" className="rounded-full bg-black px-5 py-2 text-sm text-white">Start shopping</Link>
-          <Link href="/account" className="rounded-full border px-5 py-2 text-sm">My tier</Link>
+          <Link href="/shop" className="rounded-full bg-emerald-700 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-800">Start shopping</Link>
+          <Link href="/account" className="rounded-full border border-stone-300 bg-white px-5 py-2 text-sm text-stone-700 shadow-sm transition hover:border-stone-400 hover:bg-stone-50">My tier</Link>
         </div>
       </main>
       <StoreFooter />

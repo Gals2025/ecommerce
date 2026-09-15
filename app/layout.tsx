@@ -1,25 +1,25 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const displaySerif = Fraunces({
+  variable: "--font-display-serif",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: { default: "Everyday Store — Shop online, pay on delivery", template: "%s | Everyday Store" },
-  description: "Shop everyday essentials online. Cash on delivery, GCash, bank transfer, or pay in store. Metro Manila delivery and nationwide shipping.",
+  title: { default: "Pickle Unltd — Small-batch pickles, delivered", template: "%s | Pickle Unltd" },
+  description: "Shop Pickle Unltd online. Cash on delivery, GCash, bank transfer, or pay in store. Metro Manila delivery and nationwide shipping.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   openGraph: {
     type: "website",
-    siteName: "Everyday Store",
-    title: "Everyday Store — Shop online, pay on delivery",
+    siteName: "Pickle Unltd",
+    title: "Pickle Unltd — Small-batch pickles, delivered",
     description: "Cash on delivery, GCash, bank transfer, or pay in store.",
   },
   twitter: { card: "summary_large_image" },
@@ -30,9 +30,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${displaySerif.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col bg-stone-50 text-stone-900">{children}</body>
     </html>
   );
 }

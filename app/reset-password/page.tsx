@@ -32,9 +32,9 @@ function ResetForm() {
         else router.push("/login");
       }}
     >
-      <input name="password" type="password" required minLength={8} placeholder="New password (min 8 chars)" autoComplete="new-password" className="w-full rounded border p-2 text-sm" />
-      <input name="confirm" type="password" required minLength={8} placeholder="Confirm password" autoComplete="new-password" className="w-full rounded border p-2 text-sm" />
-      <button disabled={loading} className="w-full rounded bg-black px-4 py-2 text-sm text-white">
+      <input name="password" type="password" required minLength={8} placeholder="New password (min 8 chars)" autoComplete="new-password" className="w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm shadow-sm outline-none transition placeholder:text-stone-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20" />
+      <input name="confirm" type="password" required minLength={8} placeholder="Confirm password" autoComplete="new-password" className="w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm shadow-sm outline-none transition placeholder:text-stone-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20" />
+      <button disabled={loading} className="w-full rounded-full bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-50">
         {loading ? "Resetting…" : "Reset password"}
       </button>
       {error && <p className="text-sm text-red-600">{error}</p>}

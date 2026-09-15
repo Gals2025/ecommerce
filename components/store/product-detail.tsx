@@ -77,12 +77,12 @@ export function ProductDetailClient({
     <div className="grid gap-6 md:grid-cols-2">
       {/* Gallery */}
       <div>
-        <div className="aspect-square w-full overflow-hidden rounded-xl border bg-gray-50">
+        <div className="aspect-square w-full overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-100 shadow-soft">
           {shownImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={shownImage} alt={product.name} className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-sm text-gray-400">No image</div>
+            <div className="flex h-full w-full items-center justify-center text-sm text-stone-400">No image</div>
           )}
         </div>
         {gallery.length > 1 && (
@@ -91,7 +91,7 @@ export function ProductDetailClient({
               <button
                 key={img.url}
                 onClick={() => setImageIdx(i)}
-                className={`aspect-square overflow-hidden rounded-lg border ${i === imageIdx ? "ring-2 ring-black" : ""}`}
+                className={`aspect-square overflow-hidden rounded-xl border border-stone-200 ${i === imageIdx ? "ring-2 ring-emerald-700" : ""}`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={img.url} alt={img.alt ?? product.name} className="h-full w-full object-cover" />
@@ -103,13 +103,13 @@ export function ProductDetailClient({
 
       {/* Info */}
       <div>
-        {product.brandName && <div className="text-xs uppercase tracking-widest text-gray-500">{product.brandName}</div>}
-        <h1 className="mt-1 text-xl font-bold sm:text-2xl">{product.name}</h1>
-        {product.shortDescription && <p className="mt-1 text-sm text-gray-600">{product.shortDescription}</p>}
+        {product.brandName && <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">{product.brandName}</div>}
+        <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight text-stone-900 sm:text-3xl">{product.name}</h1>
+        {product.shortDescription && <p className="mt-1 text-sm text-stone-500">{product.shortDescription}</p>}
         <div className="mt-3 flex flex-wrap items-baseline gap-2">
-          <span className="text-2xl font-bold">{formatPHP(sellPrice)}</span>
+          <span className="font-display text-2xl font-semibold text-stone-900">{formatPHP(sellPrice)}</span>
           {comparePrice != null && comparePrice > sellPrice && (
-            <span className="text-sm text-gray-400 line-through">{formatPHP(comparePrice)}</span>
+            <span className="text-sm text-stone-400 line-through">{formatPHP(comparePrice)}</span>
           )}
         </div>
         {memberPrice != null && (
@@ -129,7 +129,7 @@ export function ProductDetailClient({
                       <button
                         key={val}
                         onClick={() => toggle(attr.name, val)}
-                        className={`rounded-full border px-3 py-1.5 text-sm ${selected ? "border-black bg-black text-white" : "hover:border-gray-400"}`}
+                        className={`rounded-full border px-3 py-1.5 text-sm transition ${selected ? "border-emerald-700 bg-emerald-700 font-medium text-white" : "border-stone-300 text-stone-700 hover:border-stone-400 hover:bg-stone-50"}`}
                       >
                         {val}
                       </button>
@@ -142,8 +142,8 @@ export function ProductDetailClient({
         )}
 
         {hasVariants && activeVariant && (
-          <p className="mt-3 text-sm text-gray-600">
-            Selected: <span className="font-medium text-black">{activeVariant.name ?? activeVariant.sku}</span> • {formatPHP(activeVariant.price ?? product.basePrice)} • {activeVariant.available} available
+          <p className="mt-3 text-sm text-stone-500">
+            Selected: <span className="font-medium text-stone-900">{activeVariant.name ?? activeVariant.sku}</span> • {formatPHP(activeVariant.price ?? product.basePrice)} • {activeVariant.available} available
           </p>
         )}
 
@@ -172,19 +172,19 @@ export function ProductDetailClient({
 
         {product.description && (
           <div className="mt-6">
-            <h2 className="font-semibold">Description</h2>
-            <p className="mt-1 whitespace-pre-line text-sm text-gray-700">{product.description}</p>
+            <h2 className="font-display text-lg font-semibold tracking-tight text-stone-900">Description</h2>
+            <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-stone-600">{product.description}</p>
           </div>
         )}
         <div className="mt-4">
-          <h2 className="font-semibold">Specifications</h2>
+          <h2 className="font-display text-lg font-semibold tracking-tight text-stone-900">Specifications</h2>
           <dl className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-            {product.sku && <><dt className="text-gray-500">SKU</dt><dd>{product.sku}</dd></>}
-            {product.weightG != null && <><dt className="text-gray-500">Weight</dt><dd>{product.weightG} g</dd></>}
+            {product.sku && <><dt className="text-stone-400">SKU</dt><dd className="text-stone-700">{product.sku}</dd></>}
+            {product.weightG != null && <><dt className="text-stone-400">Weight</dt><dd className="text-stone-700">{product.weightG} g</dd></>}
             {(product.lengthMm != null || product.widthMm != null || product.heightMm != null) && (
-              <><dt className="text-gray-500">Dimensions</dt><dd>{product.lengthMm ?? "?"} × {product.widthMm ?? "?"} × {product.heightMm ?? "?"} mm</dd></>
+              <><dt className="text-stone-400">Dimensions</dt><dd className="text-stone-700">{product.lengthMm ?? "?"} × {product.widthMm ?? "?"} × {product.heightMm ?? "?"} mm</dd></>
             )}
-            {product.categoryName && <><dt className="text-gray-500">Category</dt><dd>{product.categoryName}</dd></>}
+            {product.categoryName && <><dt className="text-stone-400">Category</dt><dd className="text-stone-700">{product.categoryName}</dd></>}
           </dl>
         </div>
       </div>

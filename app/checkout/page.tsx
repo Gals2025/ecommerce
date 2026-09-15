@@ -162,7 +162,7 @@ export default function CheckoutPage() {
       <h1 className="text-xl font-bold sm:text-2xl">Checkout</h1>
       <ol className="mt-3 flex flex-wrap gap-1 text-xs">
         {STEPS.map((s, i) => (
-          <li key={s} className={`rounded-full border px-2 py-0.5 ${i === step ? "bg-black text-white" : i < step ? "bg-gray-100" : ""}`}>
+          <li key={s} className={`rounded-full border px-2 py-0.5 ${i === step ? "border-emerald-700 bg-emerald-700 font-medium text-white" : i < step ? "border-stone-200 bg-stone-100 text-stone-600" : "border-stone-200 text-stone-500"}`}>
             {i + 1}. {s}
           </li>
         ))}

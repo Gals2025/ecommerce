@@ -26,8 +26,8 @@ export default function ForgotPasswordPage() {
             setDone(true);
           }}
         >
-          <input name="email" type="email" required placeholder="Email" autoComplete="email" className="w-full rounded border p-2 text-sm" />
-          <button disabled={loading} className="w-full rounded bg-black px-4 py-2 text-sm text-white">
+          <input name="email" type="email" required placeholder="Email" autoComplete="email" className="w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm shadow-sm outline-none transition placeholder:text-stone-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20" />
+          <button disabled={loading} className="w-full rounded-full bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-50">
             {loading ? "Sending…" : "Send reset link"}
           </button>
         </form>

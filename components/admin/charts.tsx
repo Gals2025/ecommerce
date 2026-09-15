@@ -18,7 +18,7 @@ export function VBar({
   height?: number;
 }) {
   if (data.length === 0 || data.every((d) => d.value === 0)) {
-    return <p className="text-sm text-gray-500">No data for this period.</p>;
+    return <p className="text-sm text-stone-500">No data for this period.</p>;
   }
   const W = 640;
   const H = height;
@@ -46,9 +46,9 @@ export function VBar({
         return (
           <g key={i}>
             <title>{`${d.label}: ${format(d.value)}`}</title>
-            <rect x={x} y={H - padB - h} width={Math.max(1, bw * 0.6)} height={h} rx={2} fill="#111827" />
+            <rect x={x} y={H - padB - h} width={Math.max(1, bw * 0.6)} height={h} rx={2} fill="#047857" />
             {i % showEvery === 0 && (
-              <text x={x} y={H - 10} fontSize={10} fill="#6b7280">
+              <text x={x} y={H - 10} fontSize={10} fill="#78716c">
                 {d.label}
               </text>
             )}
@@ -69,7 +69,7 @@ export function HBar({
   sub?: (i: number) => string | null;
 }) {
   if (data.length === 0 || data.every((d) => d.value === 0)) {
-    return <p className="text-sm text-gray-500">No data for this period.</p>;
+    return <p className="text-sm text-stone-500">No data for this period.</p>;
   }
   const max = niceMax(Math.max(...data.map((d) => d.value)));
   return (
@@ -77,11 +77,11 @@ export function HBar({
       {data.map((d, i) => (
         <li key={i}>
           <div className="flex items-baseline justify-between gap-2 text-sm">
-            <span className="truncate">{d.label}{sub?.(i) ? <span className="text-gray-500"> {sub(i)}</span> : null}</span>
+            <span className="truncate">{d.label}{sub?.(i) ? <span className="text-stone-500"> {sub(i)}</span> : null}</span>
             <span className="shrink-0 font-medium">{format(d.value)}</span>
           </div>
-          <div className="h-2 overflow-hidden rounded bg-gray-100">
-            <div className="h-full rounded bg-black" style={{ width: `${Math.max(d.value > 0 ? 2 : 0, (d.value / max) * 100)}%` }} />
+          <div className="h-2 overflow-hidden rounded bg-stone-100">
+            <div className="h-full rounded bg-emerald-700" style={{ width: `${Math.max(d.value > 0 ? 2 : 0, (d.value / max) * 100)}%` }} />
           </div>
         </li>
       ))}
@@ -89,12 +89,12 @@ export function HBar({
   );
 }
 
-const DONUT_COLORS = ["#111827", "#4b5563", "#9ca3af", "#d1d5db", "#374151", "#6b7280", "#e5e7eb", "#030712"];
+const DONUT_COLORS = ["#047857", "#059669", "#10b981", "#f59e0b", "#78716c", "#a8a29e", "#d6d3d1", "#065f46"];
 
 export function Donut({ data }: { data: { label: string; value: number }[] }) {
   const total = data.reduce((s, d) => s + d.value, 0);
   if (data.length === 0 || total === 0) {
-    return <p className="text-sm text-gray-500">No data for this period.</p>;
+    return <p className="text-sm text-stone-500">No data for this period.</p>;
   }
   const R = 54;
   const C = 2 * Math.PI * R;

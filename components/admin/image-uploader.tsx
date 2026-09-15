@@ -74,7 +74,7 @@ export function ImageUploader({
                   Remove
                 </Button>
               </div>
-              {i === 0 && <span className="absolute left-1 top-1 rounded bg-black/60 px-1 text-[10px] text-white">Cover</span>}
+              {i === 0 && <span className="absolute left-1 top-1 rounded-full bg-emerald-700/90 px-1.5 text-[10px] font-medium text-white">Cover</span>}
             </div>
           ))}
         </div>
