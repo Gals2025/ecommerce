@@ -1,0 +1,9 @@
+ALTER TABLE "inventory_movements" DROP CONSTRAINT "inventory_movements_reason_ck";--> statement-breakpoint
+UPDATE "inventory_movements" SET "reason" = CASE "reason" WHEN 'purchase' THEN CASE WHEN "ref_type" = 'product_create' OR "ref_type" = 'seed' THEN 'OPENING_STOCK' ELSE 'STOCK_RECEIVED' END WHEN 'sale' THEN 'SALE' WHEN 'reserve' THEN 'RESERVATION' WHEN 'release' THEN 'RESERVATION_RELEASE' WHEN 'capture' THEN 'SALE' WHEN 'adjust' THEN 'ADJUSTMENT_IN' WHEN 'transfer' THEN 'TRANSFER_IN' WHEN 'return' THEN 'CUSTOMER_RETURN' ELSE "reason" END WHERE "reason" NOT IN ('OPENING_STOCK','STOCK_RECEIVED','SALE','CUSTOMER_RETURN','SUPPLIER_RETURN','DAMAGE','LOSS','ADJUSTMENT_IN','ADJUSTMENT_OUT','TRANSFER_IN','TRANSFER_OUT','RESERVATION','RESERVATION_RELEASE','ORDER_CANCELLATION','REFUND_RESTOCK');--> statement-breakpoint
+ALTER TABLE "inventory_movements" ADD COLUMN "reserved_after" integer;--> statement-breakpoint
+ALTER TABLE "inventory_movements" ADD COLUMN "unit_cost" integer;--> statement-breakpoint
+ALTER TABLE "inventory_movements" ADD COLUMN "supplier" text;--> statement-breakpoint
+ALTER TABLE "inventory_movements" ADD COLUMN "reference" text;--> statement-breakpoint
+CREATE INDEX "inventory_movements_reason_idx" ON "inventory_movements" USING btree ("reason");--> statement-breakpoint
+ALTER TABLE "inventory_movements" ADD CONSTRAINT "inventory_movements_unit_cost_ck" CHECK ("inventory_movements"."unit_cost" IS NULL OR "inventory_movements"."unit_cost" >= 0);--> statement-breakpoint
+ALTER TABLE "inventory_movements" ADD CONSTRAINT "inventory_movements_reason_ck" CHECK ("inventory_movements"."reason" IN ('OPENING_STOCK','STOCK_RECEIVED','SALE','CUSTOMER_RETURN','SUPPLIER_RETURN','DAMAGE','LOSS','ADJUSTMENT_IN','ADJUSTMENT_OUT','TRANSFER_IN','TRANSFER_OUT','RESERVATION','RESERVATION_RELEASE','ORDER_CANCELLATION','REFUND_RESTOCK'));

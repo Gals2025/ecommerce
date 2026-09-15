@@ -1,0 +1,142 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/rbac";
+import { getPricedCart } from "@/lib/cart";
+import { formatPHP } from "@/lib/money";
+import { getCategoriesTree } from "@/features/catalog/storefront";
+import { StoreFooter, StoreHeader } from "@/components/store/header";
+import { Input, buttonVariants } from "@/components/ui";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { cn } from "@/lib/cn";
+import { DbUnreachable } from "@/components/ui/empty-state";
+
+export const dynamic = "force-dynamic";
+
+export default async function CartPage() {
+  const session = await getSession().catch(() => null);
+  const userId = session?.user.id ?? null;
+  let cart: Awaited<ReturnType<typeof getPricedCart>> | null = null;
+  try {
+    cart = await getPricedCart(userId);
+  } catch {
+    return <DbUnreachable />;
+  }
+  const cats = await getCategoriesTree().catch(() => []);
+  const lines = cart.lines;
+
+  async function updateQty(formData: FormData) {
+    "use server";
+    const { getSession } = await import("@/lib/rbac");
+    const { setLineQty } = await import("@/lib/cart");
+    const s = await getSession().catch(() => null);
+    await setLineQty(s?.user.id ?? null, String(formData.get("variantId")), Number(formData.get("qty")));
+    redirect("/cart");
+  }
+
+  async function remove(formData: FormData) {
+    "use server";
+    const { getSession } = await import("@/lib/rbac");
+    const { removeLine } = await import("@/lib/cart");
+    const s = await getSession().catch(() => null);
+    await removeLine(s?.user.id ?? null, String(formData.get("variantId")));
+    redirect("/cart");
+  }
+
+  return (
+    <div className="min-h-screen bg-white">
+      <StoreHeader categories={cats.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))} />
+      <main className="mx-auto max-w-3xl px-4 py-6">
+        <h1 className="text-xl font-bold sm:text-2xl">Cart</h1>
+        {!userId && lines.length > 0 && (
+          <p className="mt-1 text-sm text-gray-600">
+            Browsing as guest. <Link href="/login" className="underline">Sign in</Link> to check out — your cart carries over.
+          </p>
+        )}
+        {userId && cart.tierName && (
+          <p className="mt-1 text-sm text-gray-600">
+            Member tier: <span className="font-medium">{cart.tierName}</span> — discount applied below.
+          </p>
+        )}
+        <div className="mt-4 space-y-3">
+          {lines.map((l) => (
+            <div key={l.variantId} className="flex gap-3 rounded-xl border p-3">
+              <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-gray-50">
+                {l.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={l.image} alt={l.productName} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">No image</div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">{l.productName}</div>
+                <div className="text-xs text-gray-500">{l.variantName ?? l.sku}</div>
+                <div className="mt-1 flex flex-wrap items-baseline gap-x-2 text-sm">
+                  <span className="font-semibold">{formatPHP(l.lineTotal)}</span>
+                  {l.discountAmount > 0 ? (
+                    <>
+                      <span className="text-xs text-gray-400 line-through">{formatPHP(l.originalUnitPrice * l.qty)}</span>
+                      <span className="text-xs font-medium text-green-700">
+                        {formatPHP(l.effectiveUnitPrice)} each · −{formatPHP(l.discountAmount)}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-xs text-gray-500">
+                      {formatPHP(l.originalUnitPrice)} each × {l.qty}
+                    </span>
+                  )}
+                </div>
+                {l.available <= 0 && <div className="text-xs text-red-600" role="alert">Out of stock — remove or wait for restock</div>}
+                {l.available > 0 && l.qty > l.available && (
+                  <div className="text-xs text-amber-700" role="alert">Only {l.available} available — lower the quantity</div>
+                )}
+                <div className="mt-2 flex items-center gap-2">
+                  <form action={updateQty} className="flex items-center gap-1">
+                    <input type="hidden" name="variantId" value={l.variantId} />
+                    <Input
+                      type="number" name="qty" defaultValue={l.qty} min={1}
+                      max={Math.max(1, Math.min(99, l.available || 99))}
+                      className="w-16 px-2 py-1"
+                      aria-label={`Quantity for ${l.productName}`}
+                    />
+                    <SubmitButton variant="utility" pendingLabel="…">Update</SubmitButton>
+                  </form>
+                  <form action={remove}>
+                    <input type="hidden" name="variantId" value={l.variantId} />
+                    <SubmitButton variant="utilityDanger" pendingLabel="…">Remove</SubmitButton>
+                  </form>
+                </div>
+              </div>
+            </div>
+          ))}
+          {lines.length === 0 && (
+            <p className="text-sm text-gray-500">Your cart is empty. <Link href="/shop" className="underline">Start shopping</Link>.</p>
+          )}
+        </div>
+        {lines.length > 0 && (
+          <div className="mt-4 rounded-xl border p-4">
+            <div className="flex justify-between text-sm"><span>Subtotal</span><span className="font-semibold">{formatPHP(cart.subtotal)}</span></div>
+            {cart.memberDiscount > 0 && (
+              <div className="mt-1 flex justify-between text-sm text-green-700">
+                <span>Member discount{cart.tierName ? ` (${cart.tierName})` : ""}</span>
+                <span>−{formatPHP(cart.memberDiscount)}</span>
+              </div>
+            )}
+            <div className="mt-1 flex justify-between text-sm font-semibold"><span>Total</span><span>{formatPHP(cart.grandTotal)}</span></div>
+            <p className="mt-1 text-xs text-gray-500">Promo codes are validated at checkout. Final pricing is recomputed by the server.</p>
+            {userId ? (
+              <Link href="/checkout" className={cn(buttonVariants({ variant: "primary", size: "lg" }), "mt-3 block text-center")}>
+                Proceed to checkout
+              </Link>
+            ) : (
+              <Link href="/login?redirect=/cart" className={cn(buttonVariants({ variant: "primary", size: "lg" }), "mt-3 block text-center")}>
+                Sign in to check out
+              </Link>
+            )}
+          </div>
+        )}
+      </main>
+      <StoreFooter />
+    </div>
+  );
+}
