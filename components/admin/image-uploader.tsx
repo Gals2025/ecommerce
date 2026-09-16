@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui";
+import { uploadCatalogFile } from "./upload-client";
 
 export function ImageUploader({
   kind = "products",
@@ -30,10 +31,7 @@ export function ImageUploader({
         const form = new FormData();
         form.append("file", file);
         form.append("kind", kind);
-        const res = await fetch("/api/admin/catalog/upload", { method: "POST", body: form });
-        const body = (await res.json()) as { url?: string; error?: string };
-        if (!res.ok || !body.url) throw new Error(body.error ?? "Upload failed");
-        next.push(body.url);
+        next.push(await uploadCatalogFile(form));
       }
       onChange(next);
     } catch (e) {
@@ -116,10 +114,7 @@ export function SingleImageField({
       const form = new FormData();
       form.append("file", file);
       form.append("kind", kind);
-      const res = await fetch("/api/admin/catalog/upload", { method: "POST", body: form });
-      const body = (await res.json()) as { url?: string; error?: string };
-      if (!res.ok || !body.url) throw new Error(body.error ?? "Upload failed");
-      onChange(body.url);
+      onChange(await uploadCatalogFile(form));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {

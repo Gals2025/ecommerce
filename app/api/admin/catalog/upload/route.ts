@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/rbac";
-import { uploadCatalogImage } from "@/lib/blob";
+import { getSession, requireAdmin } from "@/lib/rbac";
+import { BlobNotConfiguredError, uploadCatalogImage } from "@/lib/blob";
 import { audit } from "@/lib/audit";
 
 const KINDS = new Set(["products", "categories", "brands", "variants"]);
 
 export async function POST(req: Request) {
+  // 401 = no usable session (client should refresh + retry once);
+  // 403 = authenticated but not an admin (retry won't help).
+  const pre = await getSession().catch(() => null);
+  if (!pre?.user) {
+    return NextResponse.json({ error: "Session expired" }, { status: 401 });
+  }
   let actorId: string | null = null;
   try {
     const session = await requireAdmin();
@@ -31,6 +37,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ url });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Upload failed";
+    if (err instanceof BlobNotConfiguredError) {
+      // Config state, not a secret: safe to tell the admin exactly what's wrong.
+      console.error("[upload] blob store not configured");
+      return NextResponse.json(
+        { error: "Image storage is not configured. Connect a Vercel Blob store (BLOB_READ_WRITE_TOKEN) and redeploy." },
+        { status: 500 }
+      );
+    }
     const status = /Only JPG|under 4MB/.test(message) ? 400 : 500;
     // Validation errors are safe to echo; storage internals are not.
     if (status === 500) console.error("[upload] failed", message);
