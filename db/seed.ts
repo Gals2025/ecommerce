@@ -1,4 +1,4 @@
-// Full pickle seed: roles → admin → tiers → locations → shipping → catalog →
+// Full pickleball seed: roles → admin → tiers → locations → shipping → catalog →
 // balances+movements → promos → customer → order lifecycle → settings.
 // Idempotent: reruns are safe via onConflictDoNothing + pre-checks.
 import { db } from "./index";
@@ -77,7 +77,7 @@ export async function seed() {
       await db.insert(users).values({
         id: adminId,
         email: seedEmail,
-        name: "Pickle Admin",
+        name: "Pickleball Admin",
         passwordHash: await hashPassword(seedPassword),
         emailVerified: true,
       });
@@ -130,25 +130,25 @@ export async function seed() {
 
   // 6. Catalog: brand + category + product + attributes + variants + images
   await db.insert(brands).values({ name: "Pickle Unltd", slug: "pickle-unltd" }).onConflictDoNothing();
-  await db.insert(categories).values({ name: "Classic Dill", slug: "classic-dill", description: "Seeded classic dill category" }).onConflictDoNothing();
+  await db.insert(categories).values({ name: "Pro Paddles", slug: "pro-paddles", description: "Seeded pro-level pickleball paddles" }).onConflictDoNothing();
   const brand = (await db.select().from(brands).where(eq(brands.slug, "pickle-unltd")).limit(1))[0];
-  const category = (await db.select().from(categories).where(eq(categories.slug, "classic-dill")).limit(1))[0];
+  const category = (await db.select().from(categories).where(eq(categories.slug, "pro-paddles")).limit(1))[0];
 
-  const existingProducts = await db.select().from(products).where(eq(products.slug, "classic-dill-pickles")).limit(1);
+  const existingProducts = await db.select().from(products).where(eq(products.slug, "volt-pro-carbon-paddle")).limit(1);
   let productId: string;
   if (existingProducts.length === 0) {
     const [p] = await db
       .insert(products)
-      .values({ name: "Classic Dill Pickles", slug: "classic-dill-pickles", description: "Seeded classic dill jar pickles", brandId: brand.id, categoryId: category.id, basePrice: 34900 })
+      .values({ name: "Volt Pro Carbon Paddle", slug: "volt-pro-carbon-paddle", description: "Seeded pro carbon pickleball paddle", brandId: brand.id, categoryId: category.id, basePrice: 549900 })
       .returning();
     productId = p.id;
-    await db.insert(productImages).values({ productId, url: "https://example.ph/classic-dill-pickles.jpg", alt: "Classic Dill Pickles", sortOrder: 0 });
-    const [sizeAttr] = await db.insert(productAttributes).values({ productId, name: "Size" }).returning();
-    const [sizeS] = await db.insert(productAttributeValues).values({ attributeId: sizeAttr.id, value: "250ml" }).returning();
-    const [sizeL] = await db.insert(productAttributeValues).values({ attributeId: sizeAttr.id, value: "500ml" }).returning();
+    await db.insert(productImages).values({ productId, url: "https://example.ph/volt-pro-carbon-paddle.jpg", alt: "Volt Pro Carbon Paddle", sortOrder: 0 });
+    const [gripAttr] = await db.insert(productAttributes).values({ productId, name: "Grip" }).returning();
+    const [grip40] = await db.insert(productAttributeValues).values({ attributeId: gripAttr.id, value: '4"' }).returning();
+    const [grip425] = await db.insert(productAttributeValues).values({ attributeId: gripAttr.id, value: '4.25"' }).returning();
     const variantDefs = [
-      { sku: "PICKLE-DILL-250", name: "250ml", values: [sizeS.id], price: null as number | null, stock: 100 },
-      { sku: "PICKLE-DILL-500", name: "500ml", values: [sizeL.id], price: 54900, stock: 50 },
+      { sku: "PADDLE-VOLT-400", name: '4"', values: [grip40.id], price: null as number | null, stock: 100 },
+      { sku: "PADDLE-VOLT-425", name: '4.25"', values: [grip425.id], price: 569900, stock: 50 },
     ];
     for (const v of variantDefs) {
       const [variant] = await db.insert(productVariants).values({ productId, sku: v.sku, name: v.name, priceOverride: v.price }).returning();
@@ -179,17 +179,17 @@ export async function seed() {
   // Note: image URLs here are placeholders; real Vercel Blob uploads are
   // exercised manually via /admin/products/new (see CHECKPOINT notes).
   const seedBrands = [
-    { name: "Manila Ferments", slug: "manila-ferments" },
-    { name: "Sili Lab", slug: "sili-lab" },
+    { name: "Carbon Edge", slug: "carbon-edge" },
+    { name: "Court Thread", slug: "court-thread" },
   ];
   for (const b of seedBrands) {
     await db.insert(brands).values(b).onConflictDoNothing();
   }
   const seedCategories: { name: string; slug: string; description: string; sortOrder: number; parentSlug?: string }[] = [
-    { name: "Spicy Sili", slug: "spicy-sili", description: "Hot and extra-hot pickled peppers", sortOrder: 1 },
-    { name: "Sweet & Bread-and-Butter", slug: "sweet-butter", description: "Sweet brine pickles and relishes", sortOrder: 2 },
-    { name: "Garlic Dill", slug: "garlic-dill", description: "Child of Classic Dill", sortOrder: 1, parentSlug: "classic-dill" },
-    { name: "Fermented Favorites", slug: "fermented-favorites", description: "Kimchi-style and fermented vegetables", sortOrder: 3 },
+    { name: "Paddles", slug: "paddles", description: "Brand-new pickleball paddles for every level", sortOrder: 1 },
+    { name: "Balls", slug: "balls", description: "Tournament-grade indoor and outdoor pickleballs", sortOrder: 2 },
+    { name: "Apparel", slug: "apparel", description: "Court-ready sportswear and apparel", sortOrder: 3 },
+    { name: "Accessories", slug: "accessories", description: "Grips, bags, caps and court essentials", sortOrder: 4 },
   ];
   for (const c of seedCategories) {
     const parent = c.parentSlug
@@ -254,42 +254,41 @@ export async function seed() {
     variants?: { sku: string; name: string; price?: number | null; cost?: number | null; stock: number; values: string[] }[];
   };
   const seedProducts: SeedProduct[] = [
-    { name: "Garlic Dill Spears", slug: "garlic-dill-spears", sku: "DILL-GARLIC-250", short: "Crunchy garlic dill spears", desc: "Crunchy cucumber spears in garlic dill brine", brand: "pickle-unltd", category: "garlic-dill", base: 34900, compare: 42900, cost: 16000, status: "active", featured: true, threshold: 10, weightG: 450 },
-    { name: "Siling Labuyo Pickles", slug: "siling-labuyo-pickles", sku: "SILI-LABUYO-250", short: "Fiery native chili pickles", desc: "Fiery siling labuyo in cane-vinegar brine", brand: "sili-lab", category: "spicy-sili", base: 39900, compare: 47900, cost: 18000, status: "active", weightG: 350, threshold: 5 },
-    { name: "Sweet Bread-and-Butter Chips", slug: "sweet-butter-chips", sku: "SWEET-BB-250", short: "Sweet crinkle-cut chips", desc: "Sweet bread-and-butter cucumber chips", brand: "manila-ferments", category: "sweet-butter", base: 32900, status: "active", featured: true, weightG: 400 },
-    { name: "Atchara Papaya Relish", slug: "atchara-papaya-relish", sku: "ATCHARA-250", short: "Classic Filipino atchara", desc: "Classic green papaya atchara with peppers", brand: "manila-ferments", category: "sweet-butter", base: 29900, cost: 13000, status: "active", weightG: 380 },
+    { name: "Surge Fiberglass Paddle", slug: "surge-fiberglass-paddle", sku: "PADDLE-SURGE-400", short: "Lightweight fiberglass paddle", desc: "Lightweight fiberglass paddle with a comfort grip", brand: "pickle-unltd", category: "paddles", base: 349900, compare: 419900, cost: 180000, status: "active", featured: true, threshold: 10, weightG: 230 },
+    { name: "Tour Outdoor Balls 3-Pack", slug: "tour-outdoor-balls-3pk", sku: "BALL-TOUR-OUT-3PK", short: "Tournament outdoor balls", desc: "Tournament-grade 40-hole outdoor pickleballs, 3-pack", brand: "carbon-edge", category: "balls", base: 59900, compare: 74900, cost: 25000, status: "active", weightG: 300, threshold: 5 },
+    { name: "Dry-Fit Court Tee", slug: "dry-fit-court-tee", sku: "APPAREL-TEE-M", short: "Sweat-wicking court tee", desc: "Sweat-wicking dry-fit tee for long court sessions", brand: "court-thread", category: "apparel", base: 129900, status: "active", featured: true, weightG: 180 },
+    { name: "Court Performance Shorts", slug: "court-performance-shorts", sku: "APPAREL-SHORTS-M", short: "Classic court shorts", desc: "Lightweight performance shorts with ball pockets", brand: "court-thread", category: "apparel", base: 139900, cost: 60000, status: "active", weightG: 220 },
     {
-      name: "Spicy Dill Pickles", slug: "spicy-dill-pickles", short: "Dill with a sili kick", desc: "Classic dill brine with siling labuyo heat",
-      brand: "pickle-unltd", category: "spicy-sili", base: 36900, compare: 42900, cost: 17000,
-      status: "active", featured: true, weightG: 450,
-      attributes: [{ name: "Size", values: ["250ml", "500ml"] }, { name: "Heat", values: ["Medium", "Hot"] }],
+      name: "Control Touch Pro Paddle", slug: "control-touch-pro-paddle", short: "Control paddle with spin texture", desc: "Carbon-face control paddle with spin texture",
+      brand: "carbon-edge", category: "pro-paddles", base: 499900, compare: 579900, cost: 250000,
+      status: "active", featured: true, weightG: 235,
+      attributes: [{ name: "Grip", values: ['4"', '4.25"'] }, { name: "Weight", values: ["Light", "Standard"] }],
       variants: [
-        { sku: "SPICY-DILL-MED-250", name: "Medium / 250ml", price: null, cost: 17000, stock: 40, values: ["Medium", "250ml"] },
-        { sku: "SPICY-DILL-HOT-250", name: "Hot / 250ml", price: null, cost: 17000, stock: 35, values: ["Hot", "250ml"] },
-        { sku: "SPICY-DILL-HOT-500", name: "Hot / 500ml", price: 59900, cost: 28000, stock: 20, values: ["Hot", "500ml"] },
+        { sku: "PADDLE-CTRL-LT-400", name: 'Light / 4"', price: null, cost: 250000, stock: 40, values: ["Light", '4"'] },
+        { sku: "PADDLE-CTRL-STD-400", name: 'Standard / 4"', price: null, cost: 250000, stock: 35, values: ["Standard", '4"'] },
+        { sku: "PADDLE-CTRL-STD-425", name: 'Standard / 4.25"', price: 519900, cost: 260000, stock: 20, values: ["Standard", '4.25"'] },
       ],
     },
     {
-      name: "Kimchi-Style Mustasa", slug: "kimchi-style-mustasa", short: "Fermented mustard greens", desc: "Fermented mustasa in kimchi-style seasoning",
-      brand: "manila-ferments", category: "fermented-favorites", base: 35900, cost: 16000,
-      status: "active", weightG: 400,
-      attributes: [{ name: "Size", values: ["250ml", "500ml"] }],
+      name: "Rally Starter Paddle", slug: "rally-starter-paddle", short: "Beginner-friendly paddle", desc: "Beginner-friendly paddle with a wide sweet spot",
+      brand: "pickle-unltd", category: "paddles", base: 249900, cost: 120000,
+      status: "active", weightG: 240,
+      attributes: [{ name: "Grip", values: ['4"', '4.25"'] }],
       variants: [
-        { sku: "MUSTASA-250", name: "250ml", price: null, cost: 16000, stock: 30, values: ["250ml"] },
-        { sku: "MUSTASA-500", name: "500ml", price: 57900, cost: 26000, stock: 18, values: ["500ml"] },
+        { sku: "PADDLE-RALLY-400", name: '4"', price: null, cost: 120000, stock: 30, values: ['4"'] },
+        { sku: "PADDLE-RALLY-425", name: '4.25"', price: 259900, cost: 125000, stock: 18, values: ['4.25"'] },
       ],
     },
-    { name: "Pickled Red Onions", slug: "pickled-red-onions", sku: "ONION-RED-250", short: "Bright pink pickled onions", desc: "Quick-pickled red onions for silog and tacos", brand: "pickle-unltd", category: "fermented-favorites", base: 27900, cost: 12000, status: "inactive", weightG: 300 },
-    { name: "Burong Mangga", slug: "burong-mangga", sku: "MANGGA-250", short: "Fermented green mango", desc: "Burong mangga with a salty-sour brine", brand: "manila-ferments", category: "fermented-favorites", base: 31900, compare: 37900, cost: 14000, status: "active", threshold: 5, weightG: 380 },
+    { name: "Sideline Court Cap", slug: "sideline-court-cap", sku: "APPAREL-CAP-OS", short: "Breathable court cap", desc: "Breathable one-size court cap", brand: "court-thread", category: "accessories", base: 89900, cost: 35000, status: "inactive", weightG: 100 },
+    { name: "Tour Outdoor Balls 6-Pack", slug: "tour-outdoor-balls-6pk", sku: "BALL-TOUR-OUT-6PK", short: "Outdoor balls value pack", desc: "Tournament-grade outdoor pickleballs, value 6-pack", brand: "carbon-edge", category: "balls", base: 99900, compare: 119900, cost: 45000, status: "active", threshold: 5, weightG: 550 },
     {
-      name: "Jalapeño Nacho Slices", slug: "jalapeno-nacho-slices", short: "Nacho-style jalapeños", desc: "Pickled jalapeño slices for nachos and burgers",
-      brand: "sili-lab", category: "spicy-sili", base: 38900, cost: 17500,
-      status: "draft", weightG: 350,
-      attributes: [{ name: "Heat", values: ["Medium", "Hot"] }, { name: "Size", values: ["250ml", "500ml"] }],
+      name: "Court Cushion Socks 3-Pack", slug: "court-cushion-socks-3pk", short: "Cushioned court socks", desc: "Cushioned ankle socks for quick lateral moves",
+      brand: "court-thread", category: "accessories", base: 79900, cost: 30000,
+      status: "draft", weightG: 150,
+      attributes: [{ name: "Size", values: ["M", "L"] }],
       variants: [
-        { sku: "JAL-MED-250", name: "Medium / 250ml", price: null, cost: 17500, stock: 25, values: ["Medium", "250ml"] },
-        { sku: "JAL-HOT-250", name: "Hot / 250ml", price: null, cost: 17500, stock: 25, values: ["Hot", "250ml"] },
-        { sku: "JAL-HOT-500", name: "Hot / 500ml", price: 61900, cost: 29000, stock: 15, values: ["Hot", "500ml"] },
+        { sku: "APPAREL-SOCKS-M", name: "M", price: null, cost: 30000, stock: 25, values: ["M"] },
+        { sku: "APPAREL-SOCKS-L", name: "L", price: null, cost: 30000, stock: 25, values: ["L"] },
       ],
     },
   ];
@@ -354,24 +353,24 @@ export async function seed() {
     autoPromoId = auto.id;
     const [code] = await db
       .insert(promotions)
-      .values({ name: "Seed Welcome Code", description: "₱100 off pickle product lines", type: "code", kind: "fixed", value: 10000, minSpend: 50000, priority: 10 })
+      .values({ name: "Seed Welcome Code", description: "₱100 off pickleball gear lines", type: "code", kind: "fixed", value: 10000, minSpend: 50000, priority: 10 })
       .returning();
     await db.insert(promotionCodes).values({ promotionId: code.id, code: "WELCOME10", usageLimit: 1000 }).onConflictDoNothing();
     await db.insert(promotionProducts).values({ promotionId: code.id, productId }).onConflictDoNothing();
 
-    // 20% line promo scoped to the seed pickle product (line stage, exclusive).
+    // 20% line promo scoped to the seed paddle product (line stage, exclusive).
     const [line20] = await db
       .insert(promotions)
-      .values({ name: "Seed 20% Pickle Line", description: "20% off seed pickle lines", type: "auto", kind: "percent", value: 20, minSpend: 0, priority: 5, stackable: false })
+      .values({ name: "Seed 20% Paddle Line", description: "20% off seed paddle lines", type: "auto", kind: "percent", value: 20, minSpend: 0, priority: 5, stackable: false })
       .returning();
     await db.insert(promotionProducts).values({ promotionId: line20.id, productId }).onConflictDoNothing();
 
-    // Buy 2 Get 1 on the seed pickle variant (stackable line promo).
-    const demoVar = (await db.select().from(productVariants).where(eq(productVariants.sku, "PICKLE-DILL-250")).limit(1))[0];
+    // Buy 2 Get 1 on the seed ball variant (stackable line promo).
+    const demoVar = (await db.select().from(productVariants).where(eq(productVariants.sku, "BALL-TOUR-OUT-3PK")).limit(1))[0];
     if (demoVar) {
       const [bogo] = await db
         .insert(promotions)
-        .values({ name: "Seed BOGO Pickle", description: "Buy 2 get 1 free (seed pickle jar)", type: "auto", kind: "bogo", value: 0, config: { buyVariantId: demoVar.id, buyQty: 2, getQty: 1, getPct: 100 }, minSpend: 0, priority: 3, stackable: true })
+        .values({ name: "Seed BOGO Balls", description: "Buy 2 get 1 free (tour outdoor 3-pack)", type: "auto", kind: "bogo", value: 0, config: { buyVariantId: demoVar.id, buyQty: 2, getQty: 1, getPct: 100 }, minSpend: 0, priority: 3, stackable: true })
         .returning();
       await db.insert(promotionVariants).values({ promotionId: bogo.id, variantId: demoVar.id }).onConflictDoNothing();
     }
@@ -393,12 +392,12 @@ export async function seed() {
   }
   void autoPromoId;
 
-  // 9. Pickle customer + address + membership + order lifecycle
+  // 9. Pickleball customer + address + membership + order lifecycle
   const custEmail = "customer@example.ph";
   const existingUser = await db.select().from(users).where(eq(users.email, custEmail)).limit(1);
   let custUserId: string;
   if (existingUser.length === 0) {
-    const [u] = await db.insert(users).values({ id: `seed-cust-${Date.now()}`, name: "Pickle Customer", email: custEmail, emailVerified: true }).returning();
+    const [u] = await db.insert(users).values({ id: `seed-cust-${Date.now()}`, name: "Pickleball Customer", email: custEmail, emailVerified: true }).returning();
     custUserId = u.id;
   } else {
     custUserId = existingUser[0].id;
@@ -412,7 +411,7 @@ export async function seed() {
     await db.insert(customerAddresses).values({
       customerId,
       label: "Home",
-      recipient: "Pickle Customer",
+      recipient: "Pickleball Customer",
       mobile: "09171234567",
       region: "NCR",
       province: "Metro Manila",
@@ -446,13 +445,13 @@ export async function seed() {
         activatedAt: new Date(),
       }).onConflictDoNothing();
     }
-    const demoVariant = (await db.select().from(productVariants).where(eq(productVariants.sku, "PICKLE-DILL-250")).limit(1))[0];
+    const demoVariant = (await db.select().from(productVariants).where(eq(productVariants.sku, "BALL-TOUR-OUT-3PK")).limit(1))[0];
     if (demoVariant) {
       await db.insert(memberPrices).values({
         tierId: goldTier.id,
         variantId: demoVariant.id,
         productId: null,
-        price: 29900, // explicit Gold price (< 34900 base)
+        price: 49900, // explicit Gold price (< 59900 base)
       }).onConflictDoNothing();
     }
   }
@@ -471,11 +470,11 @@ export async function seed() {
           paymentStatus: "paid",
           fulfillmentStatus: "unfulfilled",
           currency: "PHP",
-          subtotal: 34900,
+          subtotal: 59900,
           discountMember: 0,
-          discountPromo: 3490,
+          discountPromo: 5990,
           deliveryFee: 0,
-          grandTotal: 31410,
+          grandTotal: 53910,
           fulfillment: "pickup",
           snapshotTier: "Regular",
           promoCode: null,
@@ -484,30 +483,30 @@ export async function seed() {
       await db.insert(orderItems).values({
         orderId: order.id,
         variantId: v.id,
-        productName: "Classic Dill Pickles",
+        productName: "Tour Outdoor Balls 3-Pack",
         sku: v.sku,
         variantName: v.name,
-        originalUnitPrice: 34900,
-        effectiveUnitPrice: 31410,
-        discountAmount: 3490,
+        originalUnitPrice: 59900,
+        effectiveUnitPrice: 53910,
+        discountAmount: 5990,
         quantity: 1,
-        lineTotal: 31410,
+        lineTotal: 53910,
       });
       await db.insert(orderStatusHistory).values([
         { orderId: order.id, fromStatus: null, toStatus: "pending", actorId: custUserId, note: "Seed order created" },
         { orderId: order.id, fromStatus: "pending", toStatus: "confirmed", actorId: adminId ?? custUserId, note: "Seed payment verified" },
       ]);
-      await db.insert(payments).values({ orderId: order.id, method: "cod", amount: 31410, status: "verified", verifiedBy: adminId ?? null, verifiedAt: new Date() });
+      await db.insert(payments).values({ orderId: order.id, method: "cod", amount: 53910, status: "verified", verifiedBy: adminId ?? null, verifiedAt: new Date() });
       const pickup = (await db.select().from(shippingMethods).where(eq(shippingMethods.code, "pickup")).limit(1))[0];
       await db.insert(shipments).values({ orderId: order.id, shippingMethodId: pickup?.id, mode: "pickup", fee: 0, notes: "Seed pickup", status: "ready" });
       const seedPromo = (await db.select().from(promotions).where(eq(promotions.name, "Seed 10% Auto")).limit(1))[0];
       if (seedPromo) {
-        await db.insert(promotionUsage).values({ promotionId: seedPromo.id, customerId: custUserId, orderId: order.id, discount: 3490 });
+        await db.insert(promotionUsage).values({ promotionId: seedPromo.id, customerId: custUserId, orderId: order.id, discount: 5990 });
       }
     }
   }
 
-  // 9c. Returned/refunded pickle order: completed + delivered, one line
+  // 9c. Returned/refunded ball order: completed + delivered, one line
   // returned+restocked, one line damaged, partial refund completed.
   const existingReturn = await db.select().from(orders).where(eq(orders.orderNo, "ORD-SEED-0002")).limit(1);
   if (existingReturn.length === 0) {
@@ -522,31 +521,31 @@ export async function seed() {
           paymentStatus: "partially_refunded",
           fulfillmentStatus: "delivered",
           currency: "PHP",
-          subtotal: 74800,
+          subtotal: 159800,
           discountMember: 0,
           discountPromo: 0,
           deliveryFee: 0,
-          grandTotal: 74800,
+          grandTotal: 159800,
           fulfillment: "delivery",
           snapshotTier: "Regular",
           promoCode: null,
         })
         .returning();
       const [oi1] = await db.insert(orderItems).values({
-        orderId: order2.id, variantId: seedVars[0].id, productName: "Classic Dill Pickles", sku: seedVars[0].sku,
-        variantName: seedVars[0].name, originalUnitPrice: 34900, effectiveUnitPrice: 34900,
-        discountAmount: 0, quantity: 1, lineTotal: 34900,
+        orderId: order2.id, variantId: seedVars[0].id, productName: "Tour Outdoor Balls 3-Pack", sku: seedVars[0].sku,
+        variantName: seedVars[0].name, originalUnitPrice: 59900, effectiveUnitPrice: 59900,
+        discountAmount: 0, quantity: 1, lineTotal: 59900,
       }).returning();
       const [oi2] = await db.insert(orderItems).values({
-        orderId: order2.id, variantId: seedVars[1].id, productName: "Classic Dill Pickles", sku: seedVars[1].sku,
-        variantName: seedVars[1].name, originalUnitPrice: 39900, effectiveUnitPrice: 39900,
-        discountAmount: 0, quantity: 1, lineTotal: 39900,
+        orderId: order2.id, variantId: seedVars[1].id, productName: "Tour Outdoor Balls 6-Pack", sku: seedVars[1].sku,
+        variantName: seedVars[1].name, originalUnitPrice: 99900, effectiveUnitPrice: 99900,
+        discountAmount: 0, quantity: 1, lineTotal: 99900,
       }).returning();
-      await db.insert(payments).values({ orderId: order2.id, method: "gcash_manual", referenceNo: "SEED-REF-001", amount: 74800, status: "verified", verifiedBy: adminId ?? null, verifiedAt: new Date() });
+      await db.insert(payments).values({ orderId: order2.id, method: "gcash_manual", referenceNo: "SEED-REF-001", amount: 159800, status: "verified", verifiedBy: adminId ?? null, verifiedAt: new Date() });
       const [ret] = await db.insert(returns).values({ orderId: order2.id, reason: "Seed: one restock, one damaged", status: "approved" }).returning();
       await db.insert(returnItems).values({ returnId: ret.id, orderItemId: oi1.id, qty: 1, disposition: "restock" });
       await db.insert(returnItems).values({ returnId: ret.id, orderItemId: oi2.id, qty: 1, disposition: "damaged" });
-      await db.insert(refunds).values({ orderId: order2.id, returnId: ret.id, amount: 34900, method: "gcash_manual", status: "completed", reason: "Seed partial refund", processedBy: adminId ?? null });
+      await db.insert(refunds).values({ orderId: order2.id, returnId: ret.id, amount: 59900, method: "gcash_manual", status: "completed", reason: "Seed partial refund", processedBy: adminId ?? null });
     }
   }
 

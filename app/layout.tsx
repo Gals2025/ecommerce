@@ -13,14 +13,14 @@ const displaySerif = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Pickle Unltd — Small-batch pickles, delivered", template: "%s | Pickle Unltd" },
-  description: "Shop Pickle Unltd online. Cash on delivery, GCash, bank transfer, or pay in store. Metro Manila delivery and nationwide shipping.",
+  title: { default: "Pickle Unltd — Pickleball paddles, balls & apparel", template: "%s | Pickle Unltd" },
+  description: "Shop Pickle Unltd online for brand-new pickleball paddles, balls, sportswear and apparel. Cash on delivery, GCash, bank transfer, or pay in store. Metro Manila delivery and nationwide shipping.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   openGraph: {
     type: "website",
     siteName: "Pickle Unltd",
-    title: "Pickle Unltd — Small-batch pickles, delivered",
-    description: "Cash on delivery, GCash, bank transfer, or pay in store.",
+    title: "Pickle Unltd — Pickleball paddles, balls & apparel",
+    description: "Brand-new pickleball paddles, balls, sportswear and apparel. Cash on delivery, GCash, bank transfer, or pay in store.",
   },
   twitter: { card: "summary_large_image" },
   robots: { index: true, follow: true },

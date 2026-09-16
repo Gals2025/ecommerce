@@ -37,16 +37,16 @@ export default async function Home() {
           <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full bg-emerald-100/60 blur-3xl" aria-hidden />
           <div className="pointer-events-none absolute -bottom-28 left-1/3 h-64 w-64 rounded-full bg-amber-100/50 blur-3xl" aria-hidden />
           <div className="relative px-6 py-12 sm:px-12 sm:py-16">
-            <p className="inline-flex items-center gap-2 rounded-full bg-emerald-700/[0.08] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-800 ring-1 ring-inset ring-emerald-700/15">Small-batch · Made in the Philippines</p>
+            {/*<p className="inline-flex items-center gap-2 rounded-full bg-emerald-700/[0.08] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-800 ring-1 ring-inset ring-emerald-700/15">Pickleball · Paddles · Apparel</p>*/}
             <h1 className="mt-4 max-w-xl font-display text-3xl font-semibold leading-[1.08] tracking-tight text-stone-900 sm:text-5xl">
-              Crisp, bright pickles for every Filipino table
+              GEAR UP, OWN THE COURT!
             </h1>
             <p className="mt-3 max-w-md text-sm leading-relaxed text-stone-500 sm:text-base">
-              Fermented and jarred in small batches — with member prices and nationwide delivery.
+              Brand-new paddles, balls & court-ready apparel — with member prices and nationwide delivery.
             </p>
             <div className="mt-6 flex flex-wrap gap-2.5">
               <Link href="/shop" className={cn(buttonVariants({ variant: "primary", size: "lg" }))}>
-                Shop the pantry
+                Shop pickleball
               </Link>
               <Link href="/membership" className={cn(buttonVariants({ variant: "outline", size: "lg" }))}>
                 Membership
@@ -67,7 +67,7 @@ export default async function Home() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={c.imageUrl} alt={c.name} loading="lazy" className="h-full w-full object-cover" />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-2xl">🥒</div>
+                      <div className="flex h-full w-full items-center justify-center text-2xl">🏓</div>
                     )}
                   </div>
                   <div className="p-4">

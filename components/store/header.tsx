@@ -17,12 +17,12 @@ export async function StoreHeader({ categories }: { categories: { name: string; 
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
         <Link href="/" className="flex items-baseline gap-1.5 tracking-tight">
           <span className="font-display text-xl font-semibold">Pickle Unltd</span>
-          <span className="hidden text-[11px] font-medium uppercase tracking-[0.18em] text-emerald-700 sm:inline">Small-batch</span>
+          <span className="hidden text-[11px] font-medium uppercase tracking-[0.18em] text-emerald-700 sm:inline">Pickleball</span>
         </Link>
         <form action="/shop" method="get" className="hidden min-w-0 flex-1 sm:block">
           <input
             name="q"
-            placeholder="Search the pantry…"
+            placeholder="Search paddles, balls, apparel…"
             className="w-full rounded-full border border-stone-200 bg-stone-100/70 px-4 py-2 text-sm outline-none transition placeholder:text-stone-400 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-600/15"
           />
         </form>
@@ -40,7 +40,7 @@ export async function StoreHeader({ categories }: { categories: { name: string; 
         <form action="/shop" method="get" className="mx-auto max-w-6xl px-4 py-2">
           <input
             name="q"
-            placeholder="Search the pantry…"
+            placeholder="Search paddles, balls, apparel…"
             className="w-full rounded-full border border-stone-200 bg-stone-100/70 px-4 py-2 text-sm outline-none transition placeholder:text-stone-400 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-600/15"
           />
         </form>
@@ -66,7 +66,7 @@ export function StoreFooter() {
       <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-4 py-10 text-sm sm:grid-cols-4">
         <div>
           <div className="font-display text-lg font-semibold">Pickle Unltd</div>
-          <p className="mt-2 text-stone-500">Small-batch pickles, delivered across the Philippines.</p>
+          <p className="mt-2 text-stone-500">Brand-new pickleball paddles, balls & sportswear, delivered across the Philippines.</p>
         </div>
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-400">Shop</div>
