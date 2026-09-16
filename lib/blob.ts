@@ -1,4 +1,6 @@
 import { put } from "@vercel/blob";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 // NOTE: a previous unauthenticated uploadProof() helper was deleted here.
 // Proof/receipt uploads must go through a validated, permission-checked path
@@ -21,6 +23,10 @@ export function assertBlobConfigured() {
   if (!process.env.BLOB_READ_WRITE_TOKEN) throw new BlobNotConfiguredError();
 }
 
+export function hasBlobStore() {
+  return !!process.env.BLOB_READ_WRITE_TOKEN;
+}
+
 export function validateImageFile(file: File) {
   if (!IMAGE_MIMES.has(file.type)) {
     throw new Error("Only JPG, PNG, WebP, or GIF images are allowed");
@@ -31,14 +37,21 @@ export function validateImageFile(file: File) {
 }
 
 function safeName(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9.]+/g, "-").slice(0, 80);
+  return name.toLowerCase().replace(/[^a-z0-9.]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "image";
 }
 
 /** Upload a catalog image (product, variant, category, brand logo) to Vercel Blob. */
 export async function uploadCatalogImage(file: File, kind: "products" | "categories" | "brands" | "variants" = "products") {
   validateImageFile(file);
-  assertBlobConfigured();
   const key = `${kind}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${safeName(file.name)}`;
+  if (!hasBlobStore() && process.env.NODE_ENV !== "production") {
+    const uploadRoot = path.join(process.cwd(), "public", "uploads", "catalog");
+    const diskPath = path.join(uploadRoot, key);
+    await mkdir(path.dirname(diskPath), { recursive: true });
+    await writeFile(diskPath, Buffer.from(await file.arrayBuffer()));
+    return `/uploads/catalog/${key}`;
+  }
+  assertBlobConfigured();
   const blob = await put(key, file, { access: "public" });
   return blob.url;
 }

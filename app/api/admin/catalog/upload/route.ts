@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSession, requireAdmin } from "@/lib/rbac";
-import { BlobNotConfiguredError, uploadCatalogImage } from "@/lib/blob";
+import { BlobNotConfiguredError, hasBlobStore, uploadCatalogImage } from "@/lib/blob";
 import { audit } from "@/lib/audit";
 
 const KINDS = new Set(["products", "categories", "brands", "variants"]);
+const LOCAL_UPLOADS_ENABLED = process.env.NODE_ENV !== "production";
+
+export const runtime = "nodejs";
 
 /** Admin-only config probe: lets you verify the Blob store wiring in any
  * environment without attempting an upload. Returns config state only
@@ -18,7 +21,11 @@ export async function GET() {
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  return NextResponse.json({ ok: true, blobConfigured: !!process.env.BLOB_READ_WRITE_TOKEN });
+  return NextResponse.json({
+    ok: true,
+    blobConfigured: hasBlobStore(),
+    localUploadsEnabled: !hasBlobStore() && LOCAL_UPLOADS_ENABLED,
+  });
 }
 
 export async function POST(req: Request) {

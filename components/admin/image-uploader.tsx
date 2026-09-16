@@ -28,10 +28,7 @@ export function ImageUploader({
       const next = [...images];
       for (const file of Array.from(files)) {
         if (next.length >= max) break;
-        const form = new FormData();
-        form.append("file", file);
-        form.append("kind", kind);
-        next.push(await uploadCatalogFile(form));
+        next.push(await uploadCatalogFile(file, kind));
       }
       onChange(next);
     } catch (e) {
@@ -111,10 +108,7 @@ export function SingleImageField({
     setError(null);
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("kind", kind);
-      onChange(await uploadCatalogFile(form));
+      onChange(await uploadCatalogFile(file, kind));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
