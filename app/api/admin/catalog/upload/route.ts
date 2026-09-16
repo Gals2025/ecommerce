@@ -5,6 +5,22 @@ import { audit } from "@/lib/audit";
 
 const KINDS = new Set(["products", "categories", "brands", "variants"]);
 
+/** Admin-only config probe: lets you verify the Blob store wiring in any
+ * environment without attempting an upload. Returns config state only
+ * (boolean) — never secret values. */
+export async function GET() {
+  const pre = await getSession().catch(() => null);
+  if (!pre?.user) {
+    return NextResponse.json({ error: "Session expired" }, { status: 401 });
+  }
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  return NextResponse.json({ ok: true, blobConfigured: !!process.env.BLOB_READ_WRITE_TOKEN });
+}
+
 export async function POST(req: Request) {
   // 401 = no usable session (client should refresh + retry once);
   // 403 = authenticated but not an admin (retry won't help).
