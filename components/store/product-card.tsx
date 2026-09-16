@@ -17,11 +17,21 @@ export function StockBadge({ available, lowThreshold = 5 }: { available: number;
 export function ProductCard({
   item,
   memberPct,
+  rank = null,
+  featuredBadge = false,
 }: {
   item: StoreProductCard;
   memberPct?: number | null;
+  /** Best-seller rank (renders a #N badge). */
+  rank?: number | null;
+  /** Render a "Featured" badge (used outside ranked rows). */
+  featuredBadge?: boolean;
 }) {
   const memberPrice = memberPct ? Math.round(item.basePrice * (1 - memberPct / 100)) : null;
+  const salePct =
+    item.comparePrice != null && item.comparePrice > item.basePrice
+      ? Math.round((1 - item.basePrice / item.comparePrice) * 100)
+      : null;
   return (
     <Link
       href={`/products/${item.slug}`}
@@ -34,9 +44,17 @@ export function ProductCard({
         ) : (
           <div className="flex h-full w-full items-center justify-center text-sm text-stone-400">No image</div>
         )}
-        {item.comparePrice != null && item.comparePrice > item.basePrice && (
-          <span className="absolute left-2 top-2 rounded bg-red-600 px-1.5 py-0.5 text-[11px] font-medium text-white">Sale</span>
-        )}
+        <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
+          {rank != null && (
+            <span className="rounded bg-stone-900 px-1.5 py-0.5 text-[11px] font-semibold text-white">#{rank}</span>
+          )}
+          {rank == null && featuredBadge && (
+            <span className="rounded bg-emerald-700 px-1.5 py-0.5 text-[11px] font-medium text-white">Featured</span>
+          )}
+          {salePct != null && (
+            <span className="rounded bg-red-600 px-1.5 py-0.5 text-[11px] font-medium text-white">-{salePct}%</span>
+          )}
+        </div>
       </div>
       <div className="flex flex-1 flex-col gap-1 p-4">
         {item.brandName && <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">{item.brandName}</div>}

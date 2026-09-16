@@ -145,7 +145,7 @@ export default async function ShopPage({
           {page < totalPages && <Link href={pageUrl(base, page + 1)} className={cn(buttonVariants({ variant: "utility" }), "no-underline")}>Next →</Link>}
         </div>
       </main>
-      <StoreFooter />
+      <StoreFooter categories={cats.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))} />
     </div>
   );
 }
