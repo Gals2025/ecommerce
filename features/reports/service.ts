@@ -15,8 +15,8 @@ import {
   inventoryMovements,
   promotions,
 } from "@/db/schema";
-import { desc, gte, lt, and, eq, inArray } from "drizzle-orm";
-import { bucketKey, bucketRange, isLowStock, isOutOfStock, isRevenueOrder, type Bucket } from "@/lib/reports";
+import { desc, gte, gt, lt, and, eq, inArray, sql } from "drizzle-orm";
+import { bucketKey, bucketRange, isLowStock, isOutOfStock, isRevenueOrder, weightedAverageCost, type Bucket } from "@/lib/reports";
 
 export type DateRange = { from: Date; to: Date }; // [from, to)
 
@@ -137,6 +137,17 @@ export async function getSalesReport(range: DateRange, bucket: Bucket = "day") {
 }
 
 // ------------------------------------------------------------- Inventory ---
+/** One receipt-cost bucket: totals received at a given unit cost + supplier.
+ * Receipt totals across all locations — NOT remaining stock per cost (sales
+ * deplete the aggregate balance without layer linkage). */
+export type ReceiptCostLayer = {
+  unitCost: number | null;
+  qtyReceived: number;
+  supplier: string | null;
+  lastReceivedAt: Date;
+  reference: string | null;
+};
+
 export type StockRow = {
   variantId: string;
   sku: string;
@@ -146,6 +157,11 @@ export type StockRow = {
   available: number;
   threshold: number | null;
   unitCost: number;
+  /** Weighted-average over costed receipt layers; null when none exists. */
+  wac: number | null;
+  /** True when neither receipts nor static cost provide a unit cost. */
+  costMissing: boolean;
+  costLayers: ReceiptCostLayer[];
   value: number;
 };
 
@@ -166,6 +182,7 @@ export async function getInventorySnapshot(): Promise<StockRow[]> {
     .innerJoin(products, eq(productVariants.productId, products.id))
     .limit(2000);
   const agg = new Map<string, StockRow>();
+  const fallback = new Map<string, number | null>();
   for (const r of rows) {
     const prev = agg.get(r.variantId) ?? {
       variantId: r.variantId,
@@ -175,16 +192,72 @@ export async function getInventorySnapshot(): Promise<StockRow[]> {
       reserved: 0,
       available: 0,
       threshold: r.threshold,
-      unitCost: r.unitCost ?? r.productCost ?? 0,
+      unitCost: 0,
+      wac: null,
+      costMissing: true,
+      costLayers: [],
       value: 0,
     };
     prev.onHand += r.onHand ?? 0;
     prev.reserved += r.reserved ?? 0;
     agg.set(r.variantId, prev);
+    if (fallback.get(r.variantId) == null) {
+      fallback.set(r.variantId, r.unitCost ?? r.productCost ?? null);
+    }
+  }
+  // Receipt-cost layers per variant (STOCK_RECEIVED + OPENING_STOCK, positive
+  // qty only), grouped by (unitCost, supplier). NULL costs group together.
+  const variantIds = [...agg.keys()];
+  const layersByVariant = new Map<string, ReceiptCostLayer[]>();
+  if (variantIds.length > 0) {
+    const layerRows = await db
+      .select({
+        variantId: inventoryMovements.variantId,
+        unitCost: inventoryMovements.unitCost,
+        supplier: inventoryMovements.supplier,
+        qtyReceived: sql<number>`COALESCE(SUM(${inventoryMovements.qtyOnHandChange}), 0)`,
+        lastReceivedAt: sql<Date>`MAX(${inventoryMovements.createdAt})`,
+        reference: sql<string | null>`MAX(${inventoryMovements.reference})`,
+      })
+      .from(inventoryMovements)
+      .where(
+        and(
+          inArray(inventoryMovements.variantId, variantIds.slice(0, 1000)),
+          inArray(inventoryMovements.reason, ["STOCK_RECEIVED", "OPENING_STOCK"]),
+          gt(inventoryMovements.qtyOnHandChange, 0)
+        )
+      )
+      .groupBy(inventoryMovements.variantId, inventoryMovements.unitCost, inventoryMovements.supplier)
+      .limit(2000);
+    for (const l of layerRows) {
+      const qty = Number(l.qtyReceived ?? 0);
+      if (!Number.isFinite(qty) || qty <= 0) continue;
+      const list = layersByVariant.get(l.variantId) ?? [];
+      list.push({
+        unitCost: l.unitCost ?? null,
+        qtyReceived: qty,
+        supplier: l.supplier ?? null,
+        lastReceivedAt: l.lastReceivedAt ? new Date(l.lastReceivedAt) : new Date(0),
+        reference: l.reference ?? null,
+      });
+      layersByVariant.set(l.variantId, list);
+    }
   }
   for (const s of agg.values()) {
+    const layers = (layersByVariant.get(s.variantId) ?? [])
+      .sort((a, b) =>
+        a.unitCost == null ? 1 : b.unitCost == null ? -1 : a.unitCost - b.unitCost
+      )
+      .slice(0, 10);
+    const wac = weightedAverageCost(layers);
+    const staticCost = fallback.get(s.variantId) ?? null;
+    const effective = wac ?? staticCost ?? 0;
+    s.costLayers = layers;
+    s.wac = wac;
+    s.costMissing = wac == null && staticCost == null;
+    s.unitCost = effective;
     s.available = s.onHand - s.reserved;
-    s.value = s.onHand * s.unitCost;
+    s.value = s.onHand * effective;
   }
   return [...agg.values()].sort((a, b) => a.sku.localeCompare(b.sku));
 }

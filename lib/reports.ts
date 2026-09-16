@@ -91,6 +91,31 @@ export function isOutOfStock(available: number): boolean {
   return available <= 0;
 }
 
+/** Receipt-layer input for weighted-average costing (centavos + received qty). */
+export type ReceiptLayerInput = {
+  unitCost: number | null | undefined;
+  qtyReceived: number | null | undefined;
+};
+
+/**
+ * Weighted-average unit cost over receipt layers (centavos, rounded).
+ * NULL-cost / non-positive-qty layers are excluded (missing cost is never
+ * treated as ₱0). Returns null when no costed layer exists.
+ */
+export function weightedAverageCost(layers: ReceiptLayerInput[]): number | null {
+  let cost = 0;
+  let qty = 0;
+  for (const l of layers) {
+    if (l.unitCost == null) continue;
+    const q = Math.floor(Number(l.qtyReceived));
+    if (!Number.isFinite(q) || q <= 0) continue;
+    cost += q * l.unitCost;
+    qty += q;
+  }
+  if (qty <= 0) return null;
+  return Math.round(cost / qty);
+}
+
 /** Manila day boundaries [start, end) as UTC instants for SQL filtering. */
 export function manilaDayRange(date: Date): { start: Date; end: Date } {
   const { y, m, day } = manilaParts(date);

@@ -7,6 +7,7 @@ import { DateFilter, resolveRange } from "@/components/admin/date-filter";
 import { formatPHP } from "@/lib/money";
 import { formatManila } from "@/lib/datetime";
 import { DbUnreachable } from "@/components/ui/empty-state";
+import { CostLayersCell } from "@/components/admin/cost-layers-cell";
 
 export const dynamic = "force-dynamic";
 
@@ -57,26 +58,38 @@ export default async function InventoryReportPage({
 
       <section className="mt-4 rounded border p-3">
         <h2 className="font-medium">Current inventory</h2>
+        <p className="mt-1 text-xs text-gray-500">
+          Unit cost is the weighted average over receipt layers. Layers show receipt totals
+          across all locations — not remaining stock per cost (sales deplete the shared balance).
+        </p>
         <div className="mt-2 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-left text-xs text-gray-500">
                 <th className="py-1 pr-2">SKU</th><th className="pr-2">Product</th>
                 <th className="pr-2 text-right">On hand</th><th className="pr-2 text-right">Reserved</th>
-                <th className="pr-2 text-right">Available</th><th className="pr-2 text-right">Unit cost</th>
+                <th className="pr-2 text-right">Available</th><th className="pr-2 text-right">Unit cost (WAC + receipts)</th>
                 <th className="text-right">Value</th>
               </tr>
             </thead>
             <tbody>
               {report.snapshot.map((s) => (
-                <tr key={s.variantId} className="border-b last:border-0">
+                <tr key={s.variantId} className="border-b align-top last:border-0">
                   <td className="py-1 pr-2 font-mono text-xs">{s.sku}</td>
                   <td className="pr-2">{s.productName}</td>
                   <td className="pr-2 text-right">{s.onHand}</td>
                   <td className="pr-2 text-right">{s.reserved}</td>
                   <td className="pr-2 text-right font-medium">{s.available}</td>
-                  <td className="pr-2 text-right">{formatPHP(s.unitCost)}</td>
-                  <td className="text-right">{formatPHP(s.value)}</td>
+                  <td className="pr-2 text-right">
+                    <CostLayersCell
+                      sku={s.sku}
+                      wac={s.wac}
+                      unitCost={s.unitCost}
+                      costMissing={s.costMissing}
+                      layers={s.costLayers}
+                    />
+                  </td>
+                  <td className="text-right">{s.costMissing ? "—" : formatPHP(s.value)}</td>
                 </tr>
               ))}
               {report.snapshot.length === 0 && <tr><td colSpan={7} className="py-2 text-gray-500">No inventory rows.</td></tr>}
