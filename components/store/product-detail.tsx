@@ -23,21 +23,48 @@ export function ProductDetailClient({
 
   const hasVariants = product.variants.length > 0;
 
+  // Option matching is normalized (trimmed, case-insensitive) so admin-side
+  // casing drift ("Metallic Orange" vs "metallic orange") can't silently
+  // break resolution. Display strings keep their original form.
+  const norm = (s: string) => s.trim().toLowerCase();
+
+  const sellable = useMemo(() => product.variants.filter((v) => v.available > 0), [product.variants]);
+
   const resolved = useMemo(() => {
     if (!hasVariants) return null;
     // Simple product (auto-created default variant, no attributes): resolve it.
     if (product.attributes.length === 0 && product.variants.length === 1) return product.variants[0];
-    const picks = Object.values(picked).filter(Boolean);
+    const picks = Object.values(picked).map(norm).filter(Boolean);
     if (picks.length === 0) return null;
+    const matches = (vals: string[]) => {
+      const nv = vals.map(norm);
+      return picks.every((p) => nv.includes(p));
+    };
     // Exact match wins; otherwise first variant containing all picks.
     return (
       product.variants.find(
-        (v) => v.optionValues.length === picks.length && picks.every((p) => v.optionValues.includes(p))
+        (v) => v.optionValues.length === picks.length && matches(v.optionValues)
       ) ??
-      product.variants.find((v) => picks.every((p) => v.optionValues.includes(p))) ??
+      product.variants.find((v) => matches(v.optionValues)) ??
       null
     );
   }, [picked, product.variants, product.attributes, hasVariants]);
+
+  const picksMade = Object.values(picked).some(Boolean);
+  const deadPick = hasVariants && picksMade && !resolved;
+
+  // An option pill is disabled when no sellable variant offers it alongside
+  // the other current picks — prevents dead-end selections up front.
+  function optionSellable(attrName: string, val: string): boolean {
+    const others = Object.entries(picked)
+      .filter(([k, x]) => k !== attrName && !!x)
+      .map(([, x]) => norm(x));
+    const cand = norm(val);
+    return sellable.some((v) => {
+      const vals = v.optionValues.map(norm);
+      return vals.includes(cand) && others.every((p) => vals.includes(p));
+    });
+  }
 
   const activeVariant = resolved ?? (hasVariants ? null : null);
   const sellPrice = activeVariant?.price ?? product.basePrice;
@@ -125,11 +152,14 @@ export function ProductDetailClient({
                 <div className="flex flex-wrap gap-2">
                   {attr.values.map((val) => {
                     const selected = picked[attr.name] === val;
+                    const sellableOption = optionSellable(attr.name, val);
                     return (
                       <button
                         key={val}
                         onClick={() => toggle(attr.name, val)}
-                        className={`rounded-full border px-3 py-1.5 text-sm transition ${selected ? "border-emerald-700 bg-emerald-700 font-medium text-white" : "border-stone-300 text-stone-700 hover:border-stone-400 hover:bg-stone-50"}`}
+                        disabled={!sellableOption}
+                        title={sellableOption ? val : `${val} — not available`}
+                        className={`rounded-full border px-3 py-1.5 text-sm transition ${selected ? "border-emerald-700 bg-emerald-700 font-medium text-white" : sellableOption ? "border-stone-300 text-stone-700 hover:border-stone-400 hover:bg-stone-50" : "cursor-not-allowed border-stone-200 text-stone-400 line-through"}`}
                       >
                         {val}
                       </button>
@@ -144,6 +174,12 @@ export function ProductDetailClient({
         {hasVariants && activeVariant && (
           <p className="mt-3 text-sm text-stone-500">
             Selected: <span className="font-medium text-stone-900">{activeVariant.name ?? activeVariant.sku}</span> • {formatPHP(activeVariant.price ?? product.basePrice)} • {activeVariant.available} available
+          </p>
+        )}
+
+        {deadPick && (
+          <p className="mt-2 text-sm text-amber-700" role="alert">
+            That combination isn&apos;t available. Try different options.
           </p>
         )}
 
@@ -165,7 +201,7 @@ export function ProductDetailClient({
             size="lg"
             className="flex-1"
           >
-            {pending ? "Adding…" : needsPick ? "Select options" : available <= 0 ? "Out of stock" : "Add to cart"}
+            {pending ? "Adding…" : deadPick ? "Unavailable" : needsPick ? "Select options" : available <= 0 ? "Out of stock" : "Add to cart"}
           </Button>
         </div>
         {error && <p className="mt-2 text-sm text-red-600" role="alert">{error}</p>}

@@ -62,7 +62,26 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     arr.push({ onHand: b.onHand, reserved: b.reserved, location: b.location });
     stockByVariant.set(b.variantId, arr);
   }
-  void variantAttributeValues;
+  const links = await db
+    .select({
+      variantId: variantAttributeValues.variantId,
+      attributeId: productAttributeValues.attributeId,
+      value: productAttributeValues.value,
+    })
+    .from(variantAttributeValues)
+    .innerJoin(productAttributeValues, eq(variantAttributeValues.attributeValueId, productAttributeValues.id))
+    .catch(() => []);
+  const attrNameById = new Map((attrs ?? []).map((a) => [a.id, a.name]));
+  const optionsByVariant = new Map<string, { attr: string; value: string }[]>();
+  const linkedAttrCountByVariant = new Map<string, number>();
+  for (const l of links ?? []) {
+    const arr = optionsByVariant.get(l.variantId) ?? [];
+    arr.push({ attr: attrNameById.get(l.attributeId) ?? "?", value: l.value });
+    optionsByVariant.set(l.variantId, arr);
+  }
+  for (const [vid, opts] of optionsByVariant) {
+    linkedAttrCountByVariant.set(vid, new Set(opts.map((o) => o.attr)).size);
+  }
 
   async function archive(formData: FormData) {
     "use server";
@@ -129,6 +148,14 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               <div key={v.id} className="rounded border p-2 text-sm">
                 <div className="font-medium">{v.name ?? v.sku} <span className="text-xs text-gray-500">({v.sku} • {v.status})</span></div>
                 <div className="text-xs">Price: {v.priceOverride != null ? formatPHP(v.priceOverride) : `base ${formatPHP(product.basePrice)}`} • Cost: {v.costPrice != null ? formatPHP(v.costPrice) : "—"} • Track: {v.trackInventory ? "yes" : "no"}</div>
+                <div className="text-xs text-gray-500">
+                  Options: {(optionsByVariant.get(v.id) ?? []).map((o) => `${o.attr} = ${o.value}`).join(" · ") || "—"}
+                </div>
+                {(attrs ?? []).length > 0 && (linkedAttrCountByVariant.get(v.id) ?? 0) < (attrs ?? []).length && (
+                  <div className="mt-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">
+                    Incomplete options — the storefront can&apos;t resolve this variant. Link one value per attribute in Edit.
+                  </div>
+                )}
                 <div className="text-xs text-gray-500">
                   Stock: {(stockByVariant.get(v.id) ?? []).map((s) => `${s.location}: ${s.onHand - s.reserved} avail (${s.onHand} on hand)`).join("; ") || "—"}
                 </div>

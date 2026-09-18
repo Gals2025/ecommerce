@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input, Button, Card } from "@/components/ui";
 import { ImageUploader, SingleImageField } from "@/components/admin/image-uploader";
-import type { ProductInput } from "@/validators";
+import { normalizeOptionValue, type ProductInput } from "@/validators";
 
 export type ProductFormOption = { id: string; name: string };
 
@@ -86,6 +86,36 @@ export function ProductForm({
   function setVariant(i: number, patch: Partial<VariantRow>) {
     setVariants((vs) => vs.map((v, k) => (k === i ? { ...v, ...patch } : v)));
   }
+
+  // Live option-link warnings (mirrors the server guard in productSchema):
+  // catches case/whitespace drift and unlinked variant values before save.
+  const optionWarnings: string[] = (() => {
+    const warnings: string[] = [];
+    const declared = new Set<string>();
+    for (const a of attrs) {
+      const vals = a.values.split(",").map((s) => s.trim()).filter(Boolean);
+      const seen = new Map<string, string>();
+      for (const v of vals) {
+        const first = seen.get(normalizeOptionValue(v));
+        if (first !== undefined && first !== v) {
+          warnings.push(`Attribute "${a.name.trim() || "?"}": "${first}" vs "${v}" differ only by case/spacing`);
+        } else {
+          seen.set(normalizeOptionValue(v), v);
+        }
+        declared.add(v);
+      }
+    }
+    variants.forEach((v) => {
+      if (!v.sku.trim()) return;
+      for (const val of v.optionValues.split(",").map((s) => s.trim()).filter(Boolean)) {
+        if (!declared.has(val)) {
+          warnings.push(`Variant ${v.sku.trim()}: "${val}" matches no attribute value exactly — its link will be dropped`);
+          break;
+        }
+      }
+    });
+    return warnings;
+  })();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -263,6 +293,15 @@ export function ProductForm({
         {variants.length === 0 && <p className="text-sm text-gray-500">No variants — product-level SKU is then required.</p>}
       </Card>
 
+      {optionWarnings.length > 0 && (
+        <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+          <p className="font-medium">Check option links before saving (the storefront can&apos;t resolve these):</p>
+          <ul className="mt-1 list-disc pl-5">
+            {optionWarnings.slice(0, 6).map((w, i) => <li key={i}>{w}</li>)}
+            {optionWarnings.length > 6 && <li>…and {optionWarnings.length - 6} more</li>}
+          </ul>
+        </div>
+      )}
       {error && <p className="text-sm text-red-600">{error}</p>}
       <Button type="submit" disabled={pending}>{pending ? "Saving…" : mode === "create" ? "Create product" : "Save changes"}</Button>
     </form>

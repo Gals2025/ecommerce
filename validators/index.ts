@@ -223,6 +223,14 @@ export type VariantStatus = z.infer<typeof variantStatusSchema>;
 
 const imageUrlSchema = z.string().url().max(2048);
 
+// Option matching helper shared with the storefront resolver
+// (components/store/product-detail.tsx): values are compared trimmed and
+// case-insensitively, so admin input must not contain near-duplicates that
+// only differ by case/whitespace.
+export function normalizeOptionValue(s: string): string {
+  return s.trim().toLowerCase();
+}
+
 export const categorySchema = z.object({
   name: z.string().min(1).max(120),
   slug: z.string().min(1).max(140).optional(),
@@ -317,6 +325,54 @@ export const productSchema = z
         message: "Product SKU must not duplicate a variant SKU",
       });
     }
+    // Option-link integrity: near-duplicates (case/whitespace-only differences)
+    // and variant values with no exact declared match silently break
+    // storefront resolution (dead "Select options" button), so fail fast here.
+    const normNames = data.attributes.map((a) => normalizeOptionValue(a.name));
+    if (new Set(normNames).size !== normNames.length) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["attributes"],
+        message: "Attribute names must be unique (case-insensitive)",
+      });
+    }
+    const declared = new Map<string, Set<string>>();
+    data.attributes.forEach((a, ai) => {
+      const seen = new Set<string>();
+      const dupes: string[] = [];
+      for (const val of a.values) {
+        const n = normalizeOptionValue(val);
+        if (seen.has(n)) dupes.push(val);
+        seen.add(n);
+      }
+      if (dupes.length > 0) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["attributes", ai, "values"],
+          message: `Duplicate values (case-insensitive): ${[...new Set(dupes)].join(", ")}`,
+        });
+      }
+      declared.set(a.name, new Set(a.values));
+    });
+    data.variants.forEach((v, vi) => {
+      for (const val of v.optionValues) {
+        let found = false;
+        for (const vals of declared.values()) {
+          if (vals.has(val)) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["variants", vi, "optionValues"],
+            message: `Variant ${v.sku}: "${val}" matches no declared attribute value exactly — the link would be dropped`,
+          });
+          break;
+        }
+      }
+    });
   });
 export type ProductInput = z.infer<typeof productSchema>;
 

@@ -73,6 +73,18 @@ async function ensureDefaultLocation(tx: Tx | typeof db) {
   return locs[0] ?? null;
 }
 
+// Zod errors serialize as JSON blobs — flatten to readable lines so the
+// admin form (which renders e.message) shows the actual problems.
+function parseProductInput(input: unknown) {
+  const parsed = productSchema.safeParse(input);
+  if (parsed.success) return parsed.data;
+  const lines = parsed.error.issues.map((i) => {
+    const path = i.path.length > 0 ? `${String(i.path.join("."))}: ` : "";
+    return `• ${path}${i.message}`;
+  });
+  throw new Error(`Product validation failed:\n${lines.join("\n")}`);
+}
+
 // ---------- Brands ----------
 
 export async function createBrand(input: BrandInput | string) {
@@ -307,7 +319,7 @@ function buildValueMap(
 
 export async function createProduct(input: unknown) {
   const session = await requireAdmin();
-  const data = productSchema.parse(input);
+  const data = parseProductInput(input);
   return db.transaction(async (tx) => {
     const slug = await uniqueSlug(tx, products, data.slug || data.name);
     const sync = statusSync(data.status);
@@ -383,7 +395,7 @@ export async function createProduct(input: unknown) {
 
 export async function updateProduct(id: string, input: unknown) {
   const session = await requireAdmin();
-  const data = productSchema.parse(input);
+  const data = parseProductInput(input);
   return db.transaction(async (tx) => {
     const existing = (await tx.select().from(products).where(eq(products.id, id)).limit(1))[0];
     if (!existing) throw new Error("Product not found");
