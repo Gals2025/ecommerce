@@ -12,12 +12,28 @@ import { DbUnreachable } from "@/components/ui/empty-state";
 
 export const dynamic = "force-dynamic";
 
-export default async function CartPage() {
+function first(v: string | string[] | undefined): string {
+  return Array.isArray(v) ? (v[0] ?? "") : (v ?? "");
+}
+
+const SCOPE_LABEL: Record<string, string> = {
+  line: "on items",
+  cart: "on cart",
+  shipping: "shipping",
+};
+
+export default async function CartPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await getSession().catch(() => null);
   const userId = session?.user.id ?? null;
+  const raw = await searchParams;
+  const promoParam = first(raw.promo).trim();
   let cart: Awaited<ReturnType<typeof getPricedCart>> | null = null;
   try {
-    cart = await getPricedCart(userId);
+    cart = await getPricedCart(userId, promoParam || undefined);
   } catch {
     return <DbUnreachable />;
   }
@@ -39,6 +55,17 @@ export default async function CartPage() {
     const { removeLine } = await import("@/lib/cart");
     const s = await getSession().catch(() => null);
     await removeLine(s?.user.id ?? null, String(formData.get("variantId")));
+    redirect("/cart");
+  }
+
+  async function applyPromo(formData: FormData) {
+    "use server";
+    const code = String(formData.get("promo") ?? "").trim();
+    redirect(code ? `/cart?promo=${encodeURIComponent(code)}` : "/cart");
+  }
+
+  async function removePromo() {
+    "use server";
     redirect("/cart");
   }
 
@@ -122,10 +149,40 @@ export default async function CartPage() {
                 <span>−{formatPHP(cart.memberDiscount)}</span>
               </div>
             )}
-            <div className="mt-1 flex justify-between text-sm font-semibold"><span>Total</span><span>{formatPHP(cart.grandTotal)}</span></div>
-            <p className="mt-1 text-xs text-gray-500">Promo codes are validated at checkout. Final pricing is recomputed by the server.</p>
+            {cart.appliedPromos
+              .filter((a) => a.scope !== "shipping" && a.discount > 0)
+              .map((a) => (
+                <div key={`${a.promotionId}-${a.scope}`} className="mt-1 flex justify-between text-sm text-green-700">
+                  <span>{a.name} <span className="text-xs text-gray-500">· {SCOPE_LABEL[a.scope] ?? a.scope}{a.codeId && promoParam ? ` · code ${promoParam.toUpperCase()}` : ""}</span></span>
+                  <span>−{formatPHP(a.discount)}</span>
+                </div>
+              ))}
+            {cart.shippingWaiver != null && (
+              <div className="mt-1 flex justify-between text-sm text-green-700">
+                <span>Shipping covered{cart.appliedPromos.find((a) => a.scope === "shipping") ? ` (${cart.appliedPromos.find((a) => a.scope === "shipping")!.name})` : ""}</span>
+                <span>{cart.shippingWaiver === 0 ? "fully waived" : `up to −${formatPHP(cart.shippingWaiver)}`}</span>
+              </div>
+            )}
+            <form action={applyPromo} className="mt-3 flex gap-2">
+              <Input name="promo" defaultValue={promoParam} placeholder="Promo code (optional)" maxLength={32} aria-label="Promo code" className="flex-1" />
+              <SubmitButton variant="outline" pendingLabel="…">{promoParam ? "Re-apply" : "Apply"}</SubmitButton>
+              {promoParam && (
+                <SubmitButton variant="utilityDanger" pendingLabel="…" formAction={removePromo}>Remove</SubmitButton>
+              )}
+            </form>
+            {promoParam && cart.codeError && (
+              <p className="mt-1 text-sm text-red-600" role="alert">{cart.codeError} — totals unchanged.</p>
+            )}
+            {promoParam && !cart.codeError && cart.promoDiscount > 0 && (
+              <p className="mt-1 text-sm text-green-700">Applied: {promoParam.toUpperCase()} (−{formatPHP(cart.promoDiscount)}).</p>
+            )}
+            <div className="mt-2 flex justify-between border-t pt-2 text-sm font-semibold"><span>Total</span><span>{formatPHP(cart.grandTotal)}</span></div>
+            <p className="mt-1 text-xs text-gray-500">Server-computed preview — promos revalidated at checkout.</p>
             {userId ? (
-              <Link href="/checkout" className={cn(buttonVariants({ variant: "primary", size: "lg" }), "mt-3 block text-center")}>
+              <Link
+                href={promoParam && cart.promoDiscount > 0 ? `/checkout?promo=${encodeURIComponent(promoParam)}` : "/checkout"}
+                className={cn(buttonVariants({ variant: "primary", size: "lg" }), "mt-3 block text-center")}
+              >
                 Proceed to checkout
               </Link>
             ) : (

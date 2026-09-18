@@ -9,6 +9,7 @@ import {
   products,
 } from "@/db/schema";
 import { and, eq, inArray } from "drizzle-orm";
+import type { AppliedPromo } from "./promos";
 
 const COOKIE_NAME = "guest_cart";
 const MAX_QTY = 99;
@@ -241,6 +242,14 @@ export type PricedCart = {
   tierName: string | null;
   promoDiscount: number;
   promoName: string | null;
+  /** Per-promotion attribution (line + cart + shipping stages). */
+  appliedPromos: AppliedPromo[];
+  lineDiscount: number;
+  cartDiscount: number;
+  /** Set when a promo code was entered but yields no discount. */
+  codeError?: string;
+  /** Free-shipping waiver from promos (max staff-settable fee; 0 = fully waived). */
+  shippingWaiver: number | null;
   deliveryFee: number;
   grandTotal: number;
 };
@@ -254,7 +263,7 @@ export async function getPricedCart(userId: string | null, promoCode?: string): 
   const { calculateCartTotals, allocateDiscounts } = await import("./pricing");
   const lines = await getCartLines(userId);
   if (lines.length === 0) {
-    return { lines: [], subtotal: 0, memberDiscount: 0, tierName: null, promoDiscount: 0, promoName: null, deliveryFee: 0, grandTotal: 0 };
+    return { lines: [], subtotal: 0, memberDiscount: 0, tierName: null, promoDiscount: 0, promoName: null, appliedPromos: [], lineDiscount: 0, cartDiscount: 0, codeError: undefined, shippingWaiver: null, deliveryFee: 0, grandTotal: 0 };
   }
   const code = promoCode?.trim() ? promoCode.trim() : undefined;
   const totals = await calculateCartTotals({
@@ -286,6 +295,11 @@ export async function getPricedCart(userId: string | null, promoCode?: string): 
     tierName: totals.tierName,
     promoDiscount: totals.promoDiscount,
     promoName: totals.promoName,
+    appliedPromos: totals.appliedPromos,
+    lineDiscount: totals.lineDiscount,
+    cartDiscount: totals.cartDiscount,
+    codeError: totals.codeError,
+    shippingWaiver: totals.shippingWaiver,
     deliveryFee: 0,
     grandTotal: totals.grandTotal,
   };

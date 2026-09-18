@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { Suspense, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { checkout, previewCheckout, getCheckoutContext, type CheckoutPreview, type CheckoutContext, type CheckoutAddress } from "@/actions/checkout";
 import { Button, Input, buttonVariants } from "@/components/ui";
 import { cn } from "@/lib/cn";
@@ -27,9 +28,46 @@ function peso(c: number) {
   return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(c / 100);
 }
 
+const SCOPE_LABEL: Record<string, string> = {
+  line: "on items",
+  cart: "on cart",
+  shipping: "shipping",
+};
+
+/** Per-promotion attribution rows (line + cart stages). */
+function PromoRows({ promos, code }: { promos: CheckoutPreview["appliedPromos"]; code?: string }) {
+  const rows = promos.filter((a) => a.scope !== "shipping" && a.discount > 0);
+  if (rows.length === 0) return null;
+  return (
+    <>
+      {rows.map((a) => (
+        <div key={`${a.promotionId}-${a.scope}`} className="flex justify-between text-green-700">
+          <span>{a.name} <span className="text-xs text-gray-500">· {SCOPE_LABEL[a.scope] ?? a.scope}{a.codeId && code ? ` · code ${code.toUpperCase()}` : ""}</span></span>
+          <span>−{peso(a.discount)}</span>
+        </div>
+      ))}
+    </>
+  );
+}
+
 const emptyAddr = { label: "Home", recipient: "", mobile: "", region: "", province: "", city: "", barangay: "", street: "", zip: "" };
 
 export default function CheckoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto max-w-xl px-4 py-8">
+          <h1 className="text-xl font-bold sm:text-2xl">Checkout</h1>
+          <p className="mt-2 text-sm text-gray-500">Loading…</p>
+        </main>
+      }
+    >
+      <CheckoutWizard />
+    </Suspense>
+  );
+}
+
+function CheckoutWizard() {
   const [step, setStep] = useState(0);
   const [ctx, setCtx] = useState<Ctx | null>(null);
   const [ctxErr, setCtxErr] = useState("");
@@ -51,9 +89,17 @@ export default function CheckoutPage() {
   const [submitErr, setSubmitErr] = useState("");
   const [done, setDone] = useState<{ orderId: string; orderNo: string } | null>(null);
   const idemKey = useRef<string | null>(null);
+  // Promo carried from the cart (?promo=CODE). Read once — later edits are
+  // owned by the Discount step's own state.
+  const searchParams = useSearchParams();
+  const carriedRef = useRef<string | undefined>(undefined);
+  if (carriedRef.current === undefined) {
+    carriedRef.current = searchParams.get("promo")?.trim() || undefined;
+  }
 
   useEffect(() => {
     let live = true;
+    const initialCode = carriedRef.current;
     (async () => {
       try {
         const c = await getCheckoutContext();
@@ -63,9 +109,21 @@ export default function CheckoutPage() {
         if (!live) return;
         setCtxErr((e as Error).message);
       }
+      if (initialCode) setPromo(initialCode);
       try {
-        const p = await previewCheckout({ promoCode: undefined });
-        if (live) setPreview(p);
+        const p = await previewCheckout({ promoCode: initialCode });
+        if (!live) return;
+        setPreview(p);
+        if (initialCode) {
+          if ((p.promoDiscount ?? 0) > 0) {
+            setAppliedPromo(initialCode);
+            setPromoOk(true);
+            setPromoMsg(`Applied: ${p.promoName ?? initialCode} (−${peso(p.promoDiscount)})`);
+          } else {
+            setPromoOk(false);
+            setPromoMsg(p.codeError ?? "Code not valid for this cart — totals unchanged.");
+          }
+        }
       } catch (e) {
         if (live) {
           setPreview(null);
@@ -195,7 +253,7 @@ export default function CheckoutPage() {
             <div className="mt-2 rounded border p-3 text-sm">
               <div className="flex justify-between"><span>Subtotal</span><span>{peso(preview.subtotal)}</span></div>
               {preview.memberDiscount > 0 && <div className="flex justify-between text-green-700"><span>Member{preview.tierName ? ` (${preview.tierName})` : ""}</span><span>−{peso(preview.memberDiscount)}</span></div>}
-              {preview.promoDiscount > 0 && <div className="flex justify-between text-green-700"><span>Promo{preview.promoName ? ` (${preview.promoName})` : ""}</span><span>−{peso(preview.promoDiscount)}</span></div>}
+              <PromoRows promos={preview.appliedPromos} code={appliedPromo} />
               <div className="mt-1 flex justify-between font-semibold"><span>Total due</span><span>{peso(preview.grandTotal)}</span></div>
               <p className="mt-1 text-xs text-gray-500">Server-computed. Delivery fee confirmed by staff (₱0 now).</p>
             </div>
@@ -331,6 +389,7 @@ export default function CheckoutPage() {
               {promoMsg}
             </p>
           )}
+          {preview && <div className="mt-2"><PromoRows promos={preview.appliedPromos} code={appliedPromo} /></div>}
           <label className="mt-2 block text-sm">Order notes (optional)
             <Input placeholder="e.g. pickup time, landmarks" value={notes} maxLength={500} onChange={(e) => setNotes(e.target.value)} className="mt-1" />
           </label>
@@ -358,7 +417,8 @@ export default function CheckoutPage() {
               <div className="mt-2 border-t pt-2">
                 <div className="flex justify-between"><span>Subtotal</span><span>{peso(preview.subtotal)}</span></div>
                 {preview.memberDiscount > 0 && <div className="flex justify-between text-green-700"><span>Member discount</span><span>−{peso(preview.memberDiscount)}</span></div>}
-                {preview.promoDiscount > 0 && <div className="flex justify-between text-green-700"><span>Promo{preview.promoName ? ` (${preview.promoName})` : ""}</span><span>−{peso(preview.promoDiscount)}</span></div>}
+                <PromoRows promos={preview.appliedPromos} code={appliedPromo} />
+                {preview.shippingWaiver != null && <div className="flex justify-between text-green-700"><span>Shipping covered</span><span>{preview.shippingWaiver === 0 ? "fully waived" : `up to −${peso(preview.shippingWaiver)}`}</span></div>}
                 <div className="flex justify-between"><span>Delivery fee</span><span>To be confirmed</span></div>
                 <div className="mt-1 flex justify-between font-semibold"><span>Total due</span><span>{peso(preview.grandTotal)}</span></div>
               </div>
