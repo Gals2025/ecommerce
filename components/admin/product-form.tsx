@@ -88,10 +88,11 @@ export function ProductForm({
   }
 
   // Live option-link warnings (mirrors the server guard in productSchema):
-  // catches case/whitespace drift and unlinked variant values before save.
+  // case/whitespace drift is auto-repaired to the declared spelling on save;
+  // values matching nothing at all block the save.
   const optionWarnings: string[] = (() => {
     const warnings: string[] = [];
-    const declared = new Set<string>();
+    const declared: string[] = [];
     for (const a of attrs) {
       const vals = a.values.split(",").map((s) => s.trim()).filter(Boolean);
       const seen = new Map<string, string>();
@@ -102,14 +103,18 @@ export function ProductForm({
         } else {
           seen.set(normalizeOptionValue(v), v);
         }
-        declared.add(v);
+        declared.push(v);
       }
     }
     variants.forEach((v) => {
       if (!v.sku.trim()) return;
       for (const val of v.optionValues.split(",").map((s) => s.trim()).filter(Boolean)) {
-        if (!declared.has(val)) {
-          warnings.push(`Variant ${v.sku.trim()}: "${val}" matches no attribute value exactly — its link will be dropped`);
+        if (declared.includes(val)) continue;
+        const hits = declared.filter((d) => normalizeOptionValue(d) === normalizeOptionValue(val));
+        if (hits.length === 1) {
+          warnings.push(`Variant ${v.sku.trim()}: "${val}" will be saved as "${hits[0]}"`);
+        } else {
+          warnings.push(`Variant ${v.sku.trim()}: "${val}" matches no attribute value — remove it or the save will fail`);
           break;
         }
       }

@@ -14,7 +14,7 @@ import {
   productVariants,
   variantAttributeValues,
 } from "@/db/schema";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { formatPHP } from "@/lib/money";
 import { formatManila } from "@/lib/datetime";
 import { PageHeader } from "@/components/admin/page-header";
@@ -62,15 +62,21 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     arr.push({ onHand: b.onHand, reserved: b.reserved, location: b.location });
     stockByVariant.set(b.variantId, arr);
   }
-  const links = await db
-    .select({
-      variantId: variantAttributeValues.variantId,
-      attributeId: productAttributeValues.attributeId,
-      value: productAttributeValues.value,
-    })
-    .from(variantAttributeValues)
-    .innerJoin(productAttributeValues, eq(variantAttributeValues.attributeValueId, productAttributeValues.id))
-    .catch(() => []);
+  // Scoped to this product's variants (unscoped would leak other products'
+  // option links and scale with the whole catalog).
+  const variantIds = (variants ?? []).map((v) => v.id);
+  const links = variantIds.length > 0
+    ? await db
+        .select({
+          variantId: variantAttributeValues.variantId,
+          attributeId: productAttributeValues.attributeId,
+          value: productAttributeValues.value,
+        })
+        .from(variantAttributeValues)
+        .innerJoin(productAttributeValues, eq(variantAttributeValues.attributeValueId, productAttributeValues.id))
+        .where(inArray(variantAttributeValues.variantId, variantIds))
+        .catch(() => [])
+    : [];
   const attrNameById = new Map((attrs ?? []).map((a) => [a.id, a.name]));
   const optionsByVariant = new Map<string, { attr: string; value: string }[]>();
   const linkedAttrCountByVariant = new Map<string, number>();

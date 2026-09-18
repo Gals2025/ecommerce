@@ -21,6 +21,7 @@ import { audit } from "@/lib/audit";
 import { recordMovement } from "@/lib/inventory";
 import {
   brandSchema,
+  canonicalizeProductOptions,
   categorySchema,
   productSchema,
   productStatusSchema,
@@ -76,7 +77,9 @@ async function ensureDefaultLocation(tx: Tx | typeof db) {
 // Zod errors serialize as JSON blobs — flatten to readable lines so the
 // admin form (which renders e.message) shows the actual problems.
 function parseProductInput(input: unknown) {
-  const parsed = productSchema.safeParse(input);
+  // Repair legacy drift first so saves aren't blocked by it; genuine
+  // errors (duplicates, unknown values) still fail below with readable lines.
+  const parsed = productSchema.safeParse(canonicalizeProductOptions(input));
   if (parsed.success) return parsed.data;
   const lines = parsed.error.issues.map((i) => {
     const path = i.path.length > 0 ? `${String(i.path.join("."))}: ` : "";

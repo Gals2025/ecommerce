@@ -231,6 +231,44 @@ export function normalizeOptionValue(s: string): string {
   return s.trim().toLowerCase();
 }
 
+/**
+ * Repair legacy case/whitespace drift before validation: a variant option
+ * value with no EXACT declared match but exactly one normalized match is
+ * rewritten to the canonical declared spelling, so its link survives the
+ * save instead of being silently dropped (or the save rejected).
+ * Ambiguous or truly unknown values are left untouched for the validator
+ * to reject with a clear message. Pure — returns a new object.
+ */
+export function canonicalizeProductOptions(input: unknown): unknown {
+  if (typeof input !== "object" || input === null) return input;
+  const rec = input as Record<string, unknown>;
+  if (!Array.isArray(rec.attributes) || !Array.isArray(rec.variants)) return input;
+  const declared: string[] = [];
+  for (const a of rec.attributes) {
+    if (typeof a !== "object" || a === null) continue;
+    const vals = (a as Record<string, unknown>).values;
+    if (!Array.isArray(vals)) continue;
+    for (const v of vals) if (typeof v === "string") declared.push(v);
+  }
+  const canonOf = (val: string): string => {
+    if (declared.includes(val)) return val;
+    const hits = declared.filter((d) => normalizeOptionValue(d) === normalizeOptionValue(val));
+    return hits.length === 1 ? hits[0] : val;
+  };
+  return {
+    ...rec,
+    variants: (rec.variants as unknown[]).map((v) => {
+      if (typeof v !== "object" || v === null) return v;
+      const vv = v as Record<string, unknown>;
+      if (!Array.isArray(vv.optionValues)) return v;
+      return {
+        ...vv,
+        optionValues: (vv.optionValues as unknown[]).map((o) => (typeof o === "string" ? canonOf(o) : o)),
+      };
+    }),
+  };
+}
+
 export const categorySchema = z.object({
   name: z.string().min(1).max(120),
   slug: z.string().min(1).max(140).optional(),
