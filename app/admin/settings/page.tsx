@@ -1,12 +1,12 @@
 import { listUsersWithRoles } from "@/actions/auth";
-import { getSession, getUserRoles } from "@/lib/rbac";
+import { getStrictAdminSession, getUserRoles } from "@/lib/rbac";
 import type { AppRole } from "@/lib/auth";
 import { RoleButtons } from "./role-buttons";
 import { DbUnreachable } from "@/components/ui/empty-state";
 
 export default async function SettingsPage() {
-  const session = await getSession().catch(() => null);
-  if (!session?.user) return <div className="text-sm">Sign in required.</div>;
+  const session = await getStrictAdminSession().catch(() => null);
+  if (!session?.user) return <div className="text-sm">Sign in required — admin session expired after 8 hours. Please log in again.</div>;
   const held: AppRole[] = await getUserRoles(session.user.id).catch(() => []);
   if (!held.includes("SUPER_ADMIN")) {
     const { audit } = await import("@/lib/audit");

@@ -44,13 +44,13 @@ export const authClient = {
     req("/api/auth/reset", { password: args.newPassword, token: args.token }),
 };
 
-export function useSession() {
+export function useSession(strict = false) {
   const [data, setData] = useState<SessionData>(null);
   const [loading, setLoading] = useState(true);
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/session");
+      const res = await fetch(strict ? "/api/auth/session?strict=1" : "/api/auth/session");
       const json = await res.json().catch(() => ({}));
       setData(res.ok ? (json as SessionData) : null);
     } catch {
@@ -58,7 +58,7 @@ export function useSession() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [strict]);
   useEffect(() => {
     // Session fetch on mount is the canonical exception: no cascading render,
     // single request, guarded UI via isPending.

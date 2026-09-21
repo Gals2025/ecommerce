@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/rbac";
+import { getSession, getStrictAdminSession } from "@/lib/rbac";
 
-export async function GET() {
-  const session = await getSession().catch(() => null);
+export async function GET(req: Request) {
+  const strict = new URL(req.url).searchParams.get("strict") === "1";
+  const session = await (strict ? getStrictAdminSession() : getSession()).catch(() => null);
   if (!session) return NextResponse.json({ user: null }, { status: 401 });
   return NextResponse.json(session);
 }

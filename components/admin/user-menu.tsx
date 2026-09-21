@@ -4,7 +4,7 @@ import { signOut, useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 
 export function UserMenu() {
-  const { data } = useSession();
+  const { data } = useSession(true);
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const user = data?.user;

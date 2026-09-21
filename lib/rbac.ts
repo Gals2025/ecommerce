@@ -49,8 +49,11 @@ export async function getSession(): Promise<Session | null> {
     const claims = await verifyAccessToken(access);
     if (claims) return { user: { id: claims.sub, email: claims.email, name: claims.name } };
   }
-  // Fallback: try refresh rotation (issues new pair via cookie update in route only;
-  // server components just resolve the session without setting cookies).
+  // Storefront fallback: resolve via refresh token so customers stay logged
+  // in across navigation even after the 8h access JWT expires. Refresh
+  // cookies now use Path=/, so page routes receive them. Rotation (sliding
+  // 30d expiry + fresh access cookie) happens in /api/auth/refresh and the
+  // storefront middleware — server components only resolve, never set cookies.
   const rawRefresh = store.get(REFRESH_COOKIE)?.value;
   if (!rawRefresh) return null;
   const [row] = await db
@@ -62,6 +65,17 @@ export async function getSession(): Promise<Session | null> {
   const [user] = await db.select().from(users).where(eq(users.id, row.userId)).limit(1);
   if (!user || user.deletedAt) return null;
   return { user: { id: user.id, email: user.email, name: user.name } };
+}
+
+// Admin-only: strict 8h access JWT, no refresh fallback. Expired access
+// forces explicit re-login even when a valid refresh token exists.
+export async function getStrictAdminSession(): Promise<Session | null> {
+  const store = await cookies();
+  const access = store.get(ACCESS_COOKIE)?.value;
+  if (!access) return null;
+  const claims = await verifyAccessToken(access);
+  if (!claims) return null;
+  return { user: { id: claims.sub, email: claims.email, name: claims.name } };
 }
 
 // Authenticated user or throw. Use for any customer-or-staff action.

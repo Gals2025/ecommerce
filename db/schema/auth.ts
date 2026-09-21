@@ -9,8 +9,8 @@ import {
 } from "drizzle-orm/pg-core";
 
 // JWT Auth tables (PostgreSQL). Passwords hashed with bcrypt (12 rounds);
-// sessions are stateless access JWTs (15m) + opaque refresh tokens (7d)
-// stored hashed in refresh_sessions with rotation.
+// sessions are 8h access JWTs (strict for admin) + opaque 30d sliding refresh
+// tokens stored hashed in refresh_sessions with rotation.
 export const users = pgTable(
   "users",
   {

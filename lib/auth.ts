@@ -11,8 +11,32 @@ export type AppRole =
 
 export const ACCESS_COOKIE = "access_token";
 export const REFRESH_COOKIE = "refresh_token";
-export const ACCESS_TTL_SECONDS = Number(process.env.JWT_ACCESS_TTL ?? 900); // 15m
-export const REFRESH_TTL_SECONDS = Number(process.env.JWT_REFRESH_TTL ?? 604800); // 7d
+// Legacy path used before the split-session fix. Refresh cookies set with
+// Path=/api/auth are invisible to page routes, which caused admin logouts.
+export const LEGACY_REFRESH_PATH = "/api/auth";
+
+function parseTtl(raw: string | undefined, fallbackSeconds: number): number {
+  if (!raw) return fallbackSeconds;
+  const t = raw.trim().toLowerCase();
+  if (/^\d+$/.test(t)) {
+    const n = Number(t);
+    return Number.isFinite(n) && n > 0 ? n : fallbackSeconds;
+  }
+  const m = t.match(/^(\d+)\s*([smhd])$/);
+  if (!m) return fallbackSeconds;
+  const n = Number(m[1]);
+  if (!Number.isFinite(n) || n <= 0) return fallbackSeconds;
+  const mult = m[2] === "s" ? 1 : m[2] === "m" ? 60 : m[2] === "h" ? 3600 : 86400;
+  return n * mult;
+}
+
+// Admin: strict 8h access JWT, explicit re-login (refresh ignored for /admin).
+// Customer: same 8h access + 30d sliding refresh, auto-renewed via middleware.
+export const ACCESS_TTL_SECONDS = parseTtl(process.env.JWT_ACCESS_TTL, 8 * 3600); // 8h
+export const REFRESH_TTL_SECONDS = parseTtl(
+  process.env.JWT_CUSTOMER_REFRESH_TTL ?? process.env.JWT_REFRESH_TTL,
+  30 * 24 * 3600
+); // 30d
 const BCRYPT_ROUNDS = 12;
 
 function getSecret(): Uint8Array {
@@ -70,11 +94,14 @@ export function newUserId(): string {
   return `user_${randomUUID()}`;
 }
 
-export function cookieFlags(isRefreshPath = false) {
+export function cookieFlags(_isRefreshPath = false) {
+  void _isRefreshPath; // kept for call-site compat; both cookies now use Path=/.
   return {
     httpOnly: true as const,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax" as const,
-    path: isRefreshPath ? "/api/auth" : "/",
+    // Both cookies use Path=/ so page routes (/, /admin, /account) receive
+    // them. The old Path=/api/auth refresh cookie caused admin logouts.
+    path: "/" as const,
   };
 }
