@@ -6,6 +6,7 @@ import { formatPHP } from "@/lib/money";
 import { productListParamsSchema } from "@/validators";
 import { PageHeader } from "@/components/admin/page-header";
 import { PageGuard } from "@/components/admin/page-guard";
+import { ExportButtons } from "@/components/admin/export-buttons";
 import { Button, Input, Select } from "@/components/ui";
 import { Pagination } from "@/components/ui/pagination";
 import { DbUnreachable, EmptyState } from "@/components/ui/empty-state";
@@ -113,9 +114,12 @@ export default async function AdminProducts({
         title="Products"
         description={`${total} product${total === 1 ? "" : "s"} • search, filter, sort, paginate`}
         actions={
-          <Link href="/admin/products/new">
-            <Button>New product</Button>
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <ExportButtons endpoint="/api/admin/exports/products" />
+            <Link href="/admin/products/new">
+              <Button>New product</Button>
+            </Link>
+          </div>
         }
       />
       {dbError && <DbUnreachable />}

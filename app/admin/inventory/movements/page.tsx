@@ -5,6 +5,7 @@ import { formatManila } from "@/lib/datetime";
 import { formatPHP } from "@/lib/money";
 import { PageHeader } from "@/components/admin/page-header";
 import { PageGuard } from "@/components/admin/page-guard";
+import { ExportButtons } from "@/components/admin/export-buttons";
 import { Button, Input, Select } from "@/components/ui";
 import { DbUnreachable, EmptyState } from "@/components/ui/empty-state";
 import { MOVEMENT_TYPES } from "@/db/schema";
@@ -83,7 +84,11 @@ export default async function MovementsPage({
   return (
     <PageGuard permission="inventory.adjust" page="/admin/inventory/movements">
     <div>
-      <PageHeader title="Movement history" description="Append-only ledger. Corrections appear as new compensating movements — rows are never edited." />
+      <PageHeader
+        title="Movement history"
+        description="Append-only ledger. Corrections appear as new compensating movements — rows are never edited. Full export covers the newest 50,000 movements."
+        actions={<ExportButtons endpoint="/api/admin/exports/movements" />}
+      />
       <form method="get" className="mb-4 flex flex-wrap items-end gap-2 rounded-lg border p-3">
         <label className="text-xs">Type
           <Select name="type" defaultValue={type}>

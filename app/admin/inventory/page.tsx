@@ -4,6 +4,7 @@ import { inventoryBalances, inventoryLocations, products, productVariants } from
 import { asc, eq } from "drizzle-orm";
 import { PageHeader } from "@/components/admin/page-header";
 import { PageGuard } from "@/components/admin/page-guard";
+import { ExportButtons } from "@/components/admin/export-buttons";
 import { Button, buttonVariants } from "@/components/ui";
 import { DbUnreachable, EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/cn";
@@ -46,7 +47,8 @@ export default async function AdminInventory() {
         title="Inventory overview"
         description={`${totals.skus} stocked SKU locations • ${totals.onHand} on hand • ${totals.reserved} reserved • ${totals.onHand - totals.reserved} available. Balances are never edited directly — use Receiving or Adjustments.`}
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <ExportButtons endpoint="/api/admin/exports/inventory" />
             <Link href="/admin/inventory/receiving"><Button>Receive stock</Button></Link>
             <Link href="/admin/inventory/adjustments"><Button>Adjust</Button></Link>
           </div>

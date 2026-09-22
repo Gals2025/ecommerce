@@ -1,6 +1,7 @@
 import { getInventoryReport } from "@/features/reports/service";
 import { PageGuard } from "@/components/admin/page-guard";
 import { PageHeader } from "@/components/admin/page-header";
+import { ExportButtons } from "@/components/admin/export-buttons";
 import { MetricCard } from "@/components/ui/metric-card";
 import { StatusBadge } from "@/components/ui/badge";
 import { DateFilter, resolveRange } from "@/components/admin/date-filter";
@@ -27,7 +28,11 @@ export default async function InventoryReportPage({
   return (
     <PageGuard permission="reports.view" page="/admin/reports/inventory">
     <div>
-      <PageHeader title="Inventory Report" description="Live snapshot plus movements in range. Valuation at cost." />
+      <PageHeader
+        title="Inventory Report"
+        description="Live snapshot plus movements in range. Valuation at cost."
+        actions={<ExportButtons endpoint="/api/admin/exports/inventory" />}
+      />
       <DateFilter from={from} to={to} />
       <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <MetricCard label="Valuation (cost)" value={formatPHP(report.valuation)} />
