@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { formatPHP } from "@/lib/money";
 import type { StoreProductCard } from "@/features/catalog/storefront";
 
@@ -39,8 +40,14 @@ export function ProductCard({
     >
       <div className="relative aspect-square w-full overflow-hidden bg-stone-100">
         {item.coverImage ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.coverImage} alt={item.name} loading="lazy" className="h-full w-full object-cover" />
+          <Image
+            src={item.coverImage}
+            alt={item.name}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            loading="lazy"
+            className="object-cover"
+          />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-sm text-stone-400">No image</div>
         )}
@@ -56,7 +63,7 @@ export function ProductCard({
           )}
         </div>
       </div>
-      <div className="flex flex-1 flex-col gap-1 p-4">
+      <div className="flex flex-1 flex-col gap-1 p-3 sm:p-4">
         {item.brandName && <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">{item.brandName}</div>}
         <div className="line-clamp-2 text-sm font-medium leading-snug text-stone-900">{item.name}</div>
         <div className="mt-auto flex flex-wrap items-baseline gap-x-2 pt-1">
@@ -79,7 +86,7 @@ export function SectionHeader({ title, href, linkLabel }: { title: string; href?
     <div className="mb-3 flex items-baseline justify-between">
       <h2 className="font-display text-xl font-semibold tracking-tight text-stone-900 sm:text-2xl">{title}</h2>
       {href && (
-        <Link href={href} className="text-sm font-medium text-emerald-800 underline-offset-4 hover:underline">
+        <Link href={href} className="inline-flex min-h-[44px] items-center py-1 text-sm font-medium text-emerald-800 underline-offset-4 hover:underline">
           {linkLabel ?? "View all"}
         </Link>
       )}

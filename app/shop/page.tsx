@@ -120,12 +120,12 @@ export default async function ShopPage({
               <option value="name">Name A–Z</option>
             </Select>
           </label>
-          <label className="flex items-center gap-2 text-xs">
-            <input type="checkbox" name="inStock" value="1" defaultChecked={inStockOnly} /> In stock only
+          <label className="flex min-h-[44px] items-center gap-2 text-xs">
+            <input type="checkbox" name="inStock" value="1" defaultChecked={inStockOnly} className="h-5 w-5 shrink-0 accent-emerald-700" /> In stock only
           </label>
           <div className="col-span-2 flex items-center gap-2 sm:col-span-6">
-            <Button type="submit" variant="primary" size="sm">Apply</Button>
-            <Link href="/shop" className="text-sm text-gray-500 hover:underline">Reset</Link>
+            <Button type="submit" variant="primary" size="md">Apply</Button>
+            <Link href="/shop" className="inline-flex min-h-[44px] items-center py-1 text-sm text-gray-500 hover:underline">Reset</Link>
           </div>
         </form>
 

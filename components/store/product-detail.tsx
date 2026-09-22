@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { addToCart } from "@/actions/catalog";
 import { formatPHP } from "@/lib/money";
@@ -101,13 +102,20 @@ export function ProductDetailClient({
   }
 
   return (
+    <>
     <div className="grid gap-6 md:grid-cols-2">
       {/* Gallery */}
       <div>
-        <div className="aspect-square w-full overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-100 shadow-soft">
+        <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-100 shadow-soft">
           {shownImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={shownImage} alt={product.name} className="h-full w-full object-cover" />
+            <Image
+              src={shownImage}
+              alt={product.name}
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              priority={imageIdx === 0}
+              className="object-cover"
+            />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-sm text-stone-400">No image</div>
           )}
@@ -118,10 +126,10 @@ export function ProductDetailClient({
               <button
                 key={img.url}
                 onClick={() => setImageIdx(i)}
-                className={`aspect-square overflow-hidden rounded-xl border border-stone-200 ${i === imageIdx ? "ring-2 ring-emerald-700" : ""}`}
+                aria-label={`View image ${i + 1}`}
+                className={`relative aspect-square overflow-hidden rounded-xl border border-stone-200 ${i === imageIdx ? "ring-2 ring-emerald-700" : ""}`}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img.url} alt={img.alt ?? product.name} className="h-full w-full object-cover" />
+                <Image src={img.url} alt={img.alt ?? product.name} fill sizes="20vw" loading="lazy" className="object-cover" />
               </button>
             ))}
           </div>
@@ -159,7 +167,7 @@ export function ProductDetailClient({
                         onClick={() => toggle(attr.name, val)}
                         disabled={!sellableOption}
                         title={sellableOption ? val : `${val} — not available`}
-                        className={`rounded-full border px-3 py-1.5 text-sm transition ${selected ? "border-emerald-700 bg-emerald-700 font-medium text-white" : sellableOption ? "border-stone-300 text-stone-700 hover:border-stone-400 hover:bg-stone-50" : "cursor-not-allowed border-stone-200 text-stone-400 line-through"}`}
+                        className={`min-h-[44px] min-w-[44px] rounded-full border px-3 py-1.5 text-sm transition ${selected ? "border-emerald-700 bg-emerald-700 font-medium text-white" : sellableOption ? "border-stone-300 text-stone-700 hover:border-stone-400 hover:bg-stone-50" : "cursor-not-allowed border-stone-200 text-stone-400 line-through"}`}
                       >
                         {val}
                       </button>
@@ -183,7 +191,7 @@ export function ProductDetailClient({
           </p>
         )}
 
-        <div className="mt-4 flex items-center gap-2">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           <label className="text-sm">Qty
             <Input
               type="number"
@@ -214,7 +222,7 @@ export function ProductDetailClient({
         )}
         <div className="mt-4">
           <h2 className="font-display text-lg font-semibold tracking-tight text-stone-900">Specifications</h2>
-          <dl className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+          <dl className="mt-1 grid grid-cols-1 gap-x-4 gap-y-1 break-words text-sm sm:grid-cols-2">
             {product.sku && <><dt className="text-stone-400">SKU</dt><dd className="text-stone-700">{product.sku}</dd></>}
             {product.weightG != null && <><dt className="text-stone-400">Weight</dt><dd className="text-stone-700">{product.weightG} g</dd></>}
             {(product.lengthMm != null || product.widthMm != null || product.heightMm != null) && (
@@ -225,5 +233,25 @@ export function ProductDetailClient({
         </div>
       </div>
     </div>
+    {/* Sticky mobile add-to-cart bar */}
+    <div className="sticky bottom-0 z-30 -mx-4 mt-6 border-t border-stone-200/80 bg-white/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur md:hidden">
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-xs text-stone-500">{activeVariant?.name ?? activeVariant?.sku ?? product.name}</div>
+          <div className="font-display text-lg font-semibold text-stone-900">{formatPHP(sellPrice)}</div>
+        </div>
+        <Button
+          onClick={onAdd}
+          disabled={pending || !canAdd}
+          variant="primary"
+          size="lg"
+          className="min-h-[48px] shrink-0"
+        >
+          {pending ? "Adding…" : deadPick ? "Unavailable" : needsPick ? "Select options" : available <= 0 ? "Out of stock" : "Add to cart"}
+        </Button>
+      </div>
+      {error && <p className="mt-1 text-xs text-red-600" role="alert">{error}</p>}
+    </div>
+    </>
   );
 }

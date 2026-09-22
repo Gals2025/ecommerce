@@ -41,21 +41,21 @@ export async function StoreHeader({ categories }: { categories: StoreNavCategory
             <input
               name="q"
               placeholder="Search paddles, balls, apparel…"
-              className="w-full rounded-full border border-stone-200 bg-stone-100/70 py-2 pl-4 pr-11 text-sm outline-none transition placeholder:text-stone-400 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-600/15"
+              className="w-full rounded-full border border-stone-200 bg-stone-100/70 py-2.5 pl-4 pr-14 text-base outline-none transition placeholder:text-stone-400 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-600/15 sm:text-sm"
             />
-            <button type="submit" aria-label="Search" className="absolute right-1 top-1 rounded-full bg-stone-900 p-1.5 text-white transition hover:bg-emerald-800">
+            <button type="submit" aria-label="Search" className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-stone-900 p-2.5 text-white transition hover:bg-emerald-800">
               <Search className="h-4 w-4" />
             </button>
           </form>
           <nav className="ml-auto flex shrink-0 items-center gap-1 text-sm sm:gap-2">
-            <Link href="/account" className="hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 md:flex">
+            <Link href="/account" className="hidden min-h-[44px] items-center gap-1.5 rounded-full px-3 py-1.5 text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 md:flex">
               <User className="h-4 w-4" />
               {userId ? "Account" : "Sign in"}
             </Link>
-            <Link href="/account" className="rounded-full px-3 py-1.5 text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 md:hidden">
+            <Link href="/account" className="inline-flex min-h-[44px] items-center rounded-full px-3 py-1.5 text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 md:hidden">
               {userId ? "Account" : "Sign in"}
             </Link>
-            <Link href="/cart" className="relative flex items-center gap-1.5 rounded-full bg-stone-900 px-4 py-2 font-medium text-white transition hover:bg-emerald-800">
+            <Link href="/cart" className="relative flex min-h-[44px] items-center gap-1.5 rounded-full bg-stone-900 px-4 py-2 font-medium text-white transition hover:bg-emerald-800">
               <ShoppingBag className="h-4 w-4" />
               <span className="hidden sm:inline">Cart</span>
               {count > 0 && <span className="rounded-full bg-emerald-500 px-1.5 py-0.5 text-xs font-semibold text-white">{count}</span>}
@@ -67,9 +67,9 @@ export async function StoreHeader({ categories }: { categories: StoreNavCategory
             <input
               name="q"
               placeholder="Search paddles, balls, apparel…"
-              className="w-full rounded-full border border-stone-200 bg-stone-100/70 py-2 pl-4 pr-11 text-sm outline-none transition placeholder:text-stone-400 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-600/15"
+              className="w-full rounded-full border border-stone-200 bg-stone-100/70 py-2.5 pl-4 pr-14 text-base outline-none transition placeholder:text-stone-400 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-600/15 sm:text-sm"
             />
-            <button type="submit" aria-label="Search" className="absolute right-5 top-3 rounded-full bg-stone-900 p-1.5 text-white transition hover:bg-emerald-800">
+            <button type="submit" aria-label="Search" className="absolute right-5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-stone-900 p-2.5 text-white transition hover:bg-emerald-800">
               <Search className="h-4 w-4" />
             </button>
           </form>
@@ -79,15 +79,15 @@ export async function StoreHeader({ categories }: { categories: StoreNavCategory
       {categories.length > 0 && (
         <nav className="overflow-x-auto border-b border-stone-200/70 bg-white">
           <div className="mx-auto flex max-w-6xl items-center gap-1 whitespace-nowrap px-4 py-2 text-[13px]">
-            <Link href="/shop" className="rounded-full bg-stone-900 px-3 py-1 font-medium text-white transition hover:bg-emerald-800">
+            <Link href="/shop" className="flex min-h-[44px] items-center rounded-full bg-stone-900 px-3 py-1 font-medium text-white transition hover:bg-emerald-800">
               Shop All
             </Link>
             {categories.map((c) => (
-              <Link key={c.id} href={`/shop?categoryId=${c.id}`} className="rounded-full px-3 py-1 font-medium text-stone-600 transition hover:bg-emerald-50 hover:text-emerald-800">
+              <Link key={c.id} href={`/shop?categoryId=${c.id}`} className="flex min-h-[44px] items-center rounded-full px-3 py-1 font-medium text-stone-600 transition hover:bg-emerald-50 hover:text-emerald-800">
                 {c.name}
               </Link>
             ))}
-            <Link href="/promotions" className="rounded-full px-3 py-1 font-semibold text-red-600 transition hover:bg-red-50">
+            <Link href="/promotions" className="flex min-h-[44px] items-center rounded-full px-3 py-1 font-semibold text-red-600 transition hover:bg-red-50">
               Deals
             </Link>
           </div>
@@ -124,7 +124,7 @@ export function StoreFooter({ categories = [] }: { categories?: StoreNavCategory
         </div>
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Shop</div>
-          <div className="mt-2 flex flex-col gap-1.5">
+          <div className="mt-2 flex flex-col gap-1.5 [&_a]:py-1">
             <Link href="/shop" className="transition hover:text-white">All products</Link>
             {categories.slice(0, 5).map((c) => (
               <Link key={c.id} href={`/shop?categoryId=${c.id}`} className="transition hover:text-white">{c.name}</Link>
@@ -134,7 +134,7 @@ export function StoreFooter({ categories = [] }: { categories?: StoreNavCategory
         </div>
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Account</div>
-          <div className="mt-2 flex flex-col gap-1.5">
+          <div className="mt-2 flex flex-col gap-1.5 [&_a]:py-1">
             <Link href="/account" className="transition hover:text-white">My account</Link>
             <Link href="/account" className="transition hover:text-white">Track order</Link>
             <Link href="/cart" className="transition hover:text-white">Cart</Link>
@@ -143,7 +143,7 @@ export function StoreFooter({ categories = [] }: { categories?: StoreNavCategory
         </div>
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Membership</div>
-          <div className="mt-2 flex flex-col gap-1.5">
+          <div className="mt-2 flex flex-col gap-1.5 [&_a]:py-1">
             <Link href="/membership" className="transition hover:text-white">Become a member</Link>
             <Link href="/promotions" className="transition hover:text-white">Promotions</Link>
           </div>

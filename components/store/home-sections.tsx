@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   Backpack,
@@ -87,7 +88,7 @@ export function CategoryRail({ categories }: { categories: (StoreNavCategory & {
     <section className="mt-8">
       <div className="flex items-baseline justify-between">
         <h2 className="font-display text-xl font-semibold tracking-tight text-stone-900 sm:text-2xl">Shop by category</h2>
-        <Link href="/shop" className="flex items-center gap-0.5 text-sm font-medium text-emerald-800 underline-offset-4 hover:underline">
+        <Link href="/shop" className="flex min-h-[44px] items-center gap-0.5 py-1 text-sm font-medium text-emerald-800 underline-offset-4 hover:underline">
           View all <ChevronRight className="h-4 w-4" />
         </Link>
       </div>
@@ -96,10 +97,9 @@ export function CategoryRail({ categories }: { categories: (StoreNavCategory & {
           const Icon = categoryIcon(c.slug, c.name);
           return (
             <Link key={c.id} href={`/shop?categoryId=${c.id}`} className="group flex w-20 shrink-0 flex-col items-center gap-2 text-center">
-              <span className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-stone-200/80 bg-white shadow-soft transition-all group-hover:border-emerald-600/40 group-hover:shadow-lift">
+              <span className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-stone-200/80 bg-white shadow-soft transition-all group-hover:border-emerald-600/40 group-hover:shadow-lift">
                 {c.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.imageUrl} alt={c.name} loading="lazy" className="h-full w-full object-cover" />
+                  <Image src={c.imageUrl} alt={c.name} width={64} height={64} loading="lazy" className="h-full w-full object-cover" />
                 ) : (
                   <Icon className="h-6 w-6 text-emerald-800" />
                 )}
@@ -142,7 +142,7 @@ export function ProductRow({
           {subtitle && <p className="mt-0.5 text-sm text-stone-500">{subtitle}</p>}
         </div>
         {href && (
-          <Link href={href} className="flex shrink-0 items-center gap-0.5 text-sm font-medium text-emerald-800 underline-offset-4 hover:underline">
+          <Link href={href} className="flex min-h-[44px] shrink-0 items-center gap-0.5 py-1 text-sm font-medium text-emerald-800 underline-offset-4 hover:underline">
             {linkLabel} <ChevronRight className="h-4 w-4" />
           </Link>
         )}
@@ -190,7 +190,7 @@ export function PromoSplit({ promos }: { promos: SplitPromo[] }) {
             </p>
             <p className="mt-1.5 max-w-xs text-sm text-white/85">{flash.name}{flash.description ? ` — ${flash.description}` : ""}</p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <Link href="/promotions" className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50">
+              <Link href="/promotions" className="inline-flex min-h-[44px] items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50">
                 Shop the deals
               </Link>
               {flash.endAt ? <FlashCountdown endAt={flash.endAt} /> : <span className="text-xs font-medium uppercase tracking-wider text-white/80">Limited time</span>}
@@ -201,7 +201,7 @@ export function PromoSplit({ promos }: { promos: SplitPromo[] }) {
             <p className="mt-2 font-display text-3xl font-semibold leading-tight sm:text-4xl">Deals up to 50% off</p>
             <p className="mt-1.5 text-sm text-white/85">Member prices, bundle deals and event promos.</p>
             <div className="mt-4">
-              <Link href="/promotions" className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50">
+              <Link href="/promotions" className="inline-flex min-h-[44px] items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50">
                 Shop the deals
               </Link>
             </div>
@@ -246,7 +246,7 @@ export function MembershipBanner({ tiers, topDiscount }: { tiers: TierRow[]; top
           <p className="mt-2 text-sm leading-relaxed text-stone-300">
             Earn tiers as you shop. Higher tiers mean bigger automatic discounts on every order.
           </p>
-          <Link href="/membership" className={cn(buttonVariants({ variant: "primary" }), "mt-4 inline-block")}>
+          <Link href="/membership" className={cn(buttonVariants({ variant: "primary" }), "mt-4 inline-flex min-h-[44px] items-center")}>
             Join now
           </Link>
         </div>

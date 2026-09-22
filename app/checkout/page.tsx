@@ -258,7 +258,7 @@ function CheckoutWizard() {
               <p className="mt-1 text-xs text-gray-500">Server-computed. Delivery fee confirmed by staff (₱0 now).</p>
             </div>
           )}
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <Link href="/cart" className={buttonVariants({ variant: "outline" })}>Edit cart</Link>
             <Button variant="secondary" disabled={!preview || preview.lines.length === 0} onClick={() => setStep(1)}>Continue</Button>
           </div>
@@ -273,7 +273,7 @@ function CheckoutWizard() {
           ) : !ctx.signedIn ? (
             <div className="mt-2 rounded border p-3 text-sm">
               <p>Sign in to place your order. Your cart carries over after login.</p>
-              <Link href="/login?redirect=/checkout" className={cn(buttonVariants({ variant: "secondary" }), "mt-2 inline-block")}>Sign in</Link>
+              <Link href="/login?redirect=/checkout" className={cn(buttonVariants({ variant: "secondary" }), "mt-2 inline-flex min-h-[44px] items-center")}>Sign in</Link>
             </div>
           ) : (
             <div className="mt-2 rounded border p-3 text-sm">
@@ -281,7 +281,7 @@ function CheckoutWizard() {
               {ctx.tierName && <div className="text-gray-600">Member tier: {ctx.tierName}</div>}
             </div>
           )}
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setStep(0)}>Back</Button>
             <Button variant="secondary" disabled={!ctx?.signedIn} onClick={() => setStep(2)}>Continue</Button>
           </div>
@@ -297,15 +297,15 @@ function CheckoutWizard() {
           {addresses.length > 0 && (
             <div className="mt-2 space-y-1">
               {addresses.map((a) => (
-                <label key={a.id} className="flex items-start gap-2 rounded border p-2 text-sm">
-                  <input type="radio" name="addr" checked={addressId === a.id && !useNewAddr} onChange={() => { setAddressId(a.id); setUseNewAddr(false); }} />
+                <label key={a.id} className="flex min-h-[44px] items-start gap-2 rounded border p-2 text-sm">
+                  <input className="mt-0.5 h-5 w-5 shrink-0 accent-emerald-700" type="radio" name="addr" checked={addressId === a.id && !useNewAddr} onChange={() => { setAddressId(a.id); setUseNewAddr(false); }} />
                   <span><span className="font-medium">{a.label}</span> — {a.recipient}, {a.street}, {a.barangay}, {a.city} {a.zip} ({a.mobile})</span>
                 </label>
               ))}
             </div>
           )}
-          <label className="mt-2 flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={useNewAddr} onChange={(e) => { setUseNewAddr(e.target.checked); if (e.target.checked) setAddressId(null); }} />
+          <label className="mt-2 flex min-h-[44px] items-center gap-2 text-sm">
+            <input type="checkbox" className="h-5 w-5 shrink-0 accent-emerald-700" checked={useNewAddr} onChange={(e) => { setUseNewAddr(e.target.checked); if (e.target.checked) setAddressId(null); }} />
             Use a new address
           </label>
           {useNewAddr && (
@@ -323,7 +323,7 @@ function CheckoutWizard() {
           {needsAddress && !canProceedAddress && (
             <p className="mt-2 text-xs text-amber-700">Delivery needs an address — pick a saved one or enter a new address.</p>
           )}
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
             <Button variant="secondary" disabled={needsAddress && !canProceedAddress} onClick={() => setStep(3)}>Continue</Button>
           </div>
@@ -335,13 +335,13 @@ function CheckoutWizard() {
           <h2 className="font-medium">4. Delivery method</h2>
           <div className="mt-2 space-y-1">
             {DELIVERY_OPTS.map((o) => (
-              <label key={o.code} className="flex items-start gap-2 rounded border p-2 text-sm">
-                <input type="radio" name="ship" checked={shipCode === o.code} onChange={() => setShipCode(o.code)} />
+              <label key={o.code} className="flex min-h-[44px] items-start gap-2 rounded border p-2 text-sm">
+                <input className="mt-0.5 h-5 w-5 shrink-0 accent-emerald-700" type="radio" name="ship" checked={shipCode === o.code} onChange={() => setShipCode(o.code)} />
                 <span><span className="font-medium">{o.name}</span><br /><span className="text-xs text-gray-500">{o.hint}</span></span>
               </label>
             ))}
           </div>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
             <Button variant="secondary" onClick={() => setStep(4)}>Continue</Button>
           </div>
@@ -359,8 +359,8 @@ function CheckoutWizard() {
           <p className="mt-1 text-xs text-gray-500">No online gateway — manual methods are verified by staff from your receipt.</p>
           <div className="mt-2 space-y-1">
             {PAYMENT_OPTS.map((o) => (
-              <label key={o.code} className="flex items-start gap-2 rounded border p-2 text-sm">
-                <input type="radio" name="pay" checked={payment === o.code} onChange={() => setPayment(o.code)} />
+              <label key={o.code} className="flex min-h-[44px] items-start gap-2 rounded border p-2 text-sm">
+                <input className="mt-0.5 h-5 w-5 shrink-0 accent-emerald-700" type="radio" name="pay" checked={payment === o.code} onChange={() => setPayment(o.code)} />
                 <span><span className="font-medium">{o.name}</span><br /><span className="text-xs text-gray-500">{o.hint}</span></span>
               </label>
             ))}
@@ -370,7 +370,7 @@ function CheckoutWizard() {
               <Input type="url" placeholder="Paste receipt / Blob URL" value={proofUrl} onChange={(e) => setProofUrl(e.target.value)} className="mt-1" />
             </label>
           )}
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setStep(3)}>Back</Button>
             <Button variant="secondary" onClick={() => setStep(5)}>Continue</Button>
           </div>
@@ -380,8 +380,8 @@ function CheckoutWizard() {
       {step === 5 && (
         <section className="mt-4">
           <h2 className="font-medium">6. Discount validation</h2>
-          <div className="mt-2 flex gap-2">
-            <Input placeholder="Promo code (optional)" value={promo} maxLength={32} onChange={(e) => setPromo(e.target.value)} />
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Input placeholder="Promo code (optional)" value={promo} maxLength={32} onChange={(e) => setPromo(e.target.value)} className="min-w-0 flex-1 basis-full sm:basis-auto" />
             <Button variant="outline" disabled={pending} onClick={applyPromo}>{pending ? "Checking…" : "Apply"}</Button>
           </div>
           {promoMsg && (
@@ -393,7 +393,7 @@ function CheckoutWizard() {
           <label className="mt-2 block text-sm">Order notes (optional)
             <Input placeholder="e.g. pickup time, landmarks" value={notes} maxLength={500} onChange={(e) => setNotes(e.target.value)} className="mt-1" />
           </label>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setStep(4)}>Back</Button>
             <Button variant="secondary" onClick={() => { refreshPreview(appliedPromo); setStep(6); }}>Review order</Button>
           </div>
@@ -430,7 +430,7 @@ function CheckoutWizard() {
             </div>
           )}
           {submitErr && <p className="mt-2 text-sm text-red-600" role="alert">Error: {submitErr}</p>}
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <Button variant="outline" disabled={pending} onClick={() => setStep(5)}>Back</Button>
             <Button variant="secondary" disabled={pending || !preview || preview.lines.length === 0} onClick={placeOrder}>
               {pending ? "Placing order…" : "Place order"}

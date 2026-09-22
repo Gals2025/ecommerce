@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/rbac";
 import { getPricedCart } from "@/lib/cart";
@@ -87,10 +88,9 @@ export default async function CartPage({
         <div className="mt-4 space-y-3">
           {lines.map((l) => (
             <div key={l.variantId} className="flex gap-3 rounded-xl border p-3">
-              <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-gray-50">
+              <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-gray-50">
                 {l.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={l.image} alt={l.productName} className="h-full w-full object-cover" />
+                  <Image src={l.image} alt={l.productName} width={80} height={80} loading="lazy" className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">No image</div>
                 )}
@@ -117,20 +117,20 @@ export default async function CartPage({
                 {l.available > 0 && l.qty > l.available && (
                   <div className="text-xs text-amber-700" role="alert">Only {l.available} available — lower the quantity</div>
                 )}
-                <div className="mt-2 flex items-center gap-2">
-                  <form action={updateQty} className="flex items-center gap-1">
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <form action={updateQty} className="flex flex-wrap items-center gap-1">
                     <input type="hidden" name="variantId" value={l.variantId} />
                     <Input
                       type="number" name="qty" defaultValue={l.qty} min={1}
                       max={Math.max(1, Math.min(99, l.available || 99))}
-                      className="w-16 px-2 py-1"
+                      className="w-20 min-h-[44px] px-2"
                       aria-label={`Quantity for ${l.productName}`}
                     />
-                    <SubmitButton variant="utility" pendingLabel="…">Update</SubmitButton>
+                    <SubmitButton variant="utility" pendingLabel="…" className="min-h-[44px] px-3">Update</SubmitButton>
                   </form>
                   <form action={remove}>
                     <input type="hidden" name="variantId" value={l.variantId} />
-                    <SubmitButton variant="utilityDanger" pendingLabel="…">Remove</SubmitButton>
+                    <SubmitButton variant="utilityDanger" pendingLabel="…" className="min-h-[44px] px-3">Remove</SubmitButton>
                   </form>
                 </div>
               </div>
@@ -152,9 +152,9 @@ export default async function CartPage({
             {cart.appliedPromos
               .filter((a) => a.scope !== "shipping" && a.discount > 0)
               .map((a) => (
-                <div key={`${a.promotionId}-${a.scope}`} className="mt-1 flex justify-between text-sm text-green-700">
-                  <span>{a.name} <span className="text-xs text-gray-500">· {SCOPE_LABEL[a.scope] ?? a.scope}{a.codeId && promoParam ? ` · code ${promoParam.toUpperCase()}` : ""}</span></span>
-                  <span>−{formatPHP(a.discount)}</span>
+                <div key={`${a.promotionId}-${a.scope}`} className="mt-1 flex justify-between gap-2 text-sm text-green-700">
+                  <span className="min-w-0 truncate">{a.name} <span className="text-xs text-gray-500">· {SCOPE_LABEL[a.scope] ?? a.scope}{a.codeId && promoParam ? ` · code ${promoParam.toUpperCase()}` : ""}</span></span>
+                  <span className="shrink-0">−{formatPHP(a.discount)}</span>
                 </div>
               ))}
             {cart.shippingWaiver != null && (
@@ -163,8 +163,8 @@ export default async function CartPage({
                 <span>{cart.shippingWaiver === 0 ? "fully waived" : `up to −${formatPHP(cart.shippingWaiver)}`}</span>
               </div>
             )}
-            <form action={applyPromo} className="mt-3 flex gap-2">
-              <Input name="promo" defaultValue={promoParam} placeholder="Promo code (optional)" maxLength={32} aria-label="Promo code" className="flex-1" />
+            <form action={applyPromo} className="mt-3 flex flex-wrap gap-2">
+              <Input name="promo" defaultValue={promoParam} placeholder="Promo code (optional)" maxLength={32} aria-label="Promo code" className="min-w-0 flex-1 basis-full sm:basis-auto" />
               <SubmitButton variant="outline" pendingLabel="…">{promoParam ? "Re-apply" : "Apply"}</SubmitButton>
               {promoParam && (
                 <SubmitButton variant="utilityDanger" pendingLabel="…" formAction={removePromo}>Remove</SubmitButton>
