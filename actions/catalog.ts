@@ -601,6 +601,100 @@ export async function updateProduct(id: string, input: unknown) {
   });
 }
 
+export async function updateProductKeepVariants(id: string, input: unknown) {
+  // Import-mode update: scalar fields + variant upsert by SKU, but NEVER
+  // archive missing variants and NEVER touch images/attributes (flat import
+  // rows carry no attribute model — rebuilding would wipe existing data).
+  const session = await requireAdmin();
+  const data = parseProductInput(input);
+  return db.transaction(async (tx) => {
+    const existing = (await tx.select().from(products).where(eq(products.id, id)).limit(1))[0];
+    if (!existing) throw new Error("Product not found");
+
+    const slug =
+      data.slug && data.slug !== existing.slug
+        ? await uniqueSlug(tx, products, data.slug, id)
+        : existing.slug;
+    const sync = statusSync(data.status);
+
+    const [p] = await tx
+      .update(products)
+      .set({
+        name: data.name,
+        slug,
+        shortDescription: data.shortDescription ?? existing.shortDescription,
+        description: data.description ?? existing.description,
+        sku: data.sku ?? existing.sku,
+        barcode: data.barcode ?? existing.barcode,
+        brandId: data.brandId ?? existing.brandId,
+        categoryId: data.categoryId ?? existing.categoryId,
+        basePrice: data.basePrice,
+        comparePrice: data.comparePrice ?? existing.comparePrice,
+        costPrice: data.costPrice ?? existing.costPrice,
+        trackInventory: data.trackInventory,
+        lowStockThreshold: data.lowStockThreshold ?? existing.lowStockThreshold,
+        weightG: data.weightG ?? existing.weightG,
+        lengthMm: data.lengthMm ?? existing.lengthMm,
+        widthMm: data.widthMm ?? existing.widthMm,
+        heightMm: data.heightMm ?? existing.heightMm,
+        status: data.status,
+        featured: data.featured,
+        isActive: sync.isActive,
+        deletedAt: sync.deletedAt,
+        updatedAt: new Date(),
+      })
+      .where(eq(products.id, id))
+      .returning();
+
+    const inputVariants = data.variants.length > 0
+      ? data.variants
+      : data.sku
+        ? [{ sku: data.sku, name: "Default" as string | null, barcode: data.barcode ?? null, priceOverride: null as number | null, comparePrice: data.comparePrice ?? null, costPrice: data.costPrice ?? null, imageUrl: null, status: "active" as const, trackInventory: data.trackInventory, optionValues: [] as string[] }]
+        : [];
+    const existingVariants = await tx
+      .select()
+      .from(productVariants)
+      .where(eq(productVariants.productId, id));
+
+    for (const v of inputVariants) {
+      const found = existingVariants.find((ev) => ev.sku === v.sku);
+      const vsync = variantSync(v.status);
+      if (found) {
+        await tx
+          .update(productVariants)
+          .set({
+            name: v.name ?? found.name,
+            barcode: v.barcode ?? found.barcode,
+            priceOverride: v.priceOverride ?? found.priceOverride,
+            comparePrice: v.comparePrice ?? found.comparePrice,
+            costPrice: v.costPrice ?? found.costPrice,
+            imageUrl: v.imageUrl ?? found.imageUrl,
+            status: v.status,
+            trackInventory: v.trackInventory,
+            isActive: vsync.isActive,
+            deletedAt: vsync.deletedAt,
+            updatedAt: new Date(),
+          })
+          .where(eq(productVariants.id, found.id));
+      } else {
+        const clash = (
+          await tx.select({ id: productVariants.id }).from(productVariants).where(eq(productVariants.sku, v.sku)).limit(1)
+        )[0];
+        if (clash) throw new Error(`SKU ${v.sku} is already used by another product`);
+        await insertVariantWithBalance(tx, id, v, new Map(), session.user.id);
+      }
+    }
+
+    await audit(session.user.id, "product.import_update", "products", id, {
+      before: { name: existing.name, status: existing.status, basePrice: existing.basePrice },
+      after: { name: p.name, status: p.status, basePrice: p.basePrice },
+    });
+    revalidatePath("/admin/products");
+    revalidatePath(`/admin/products/${id}`);
+    return p.id;
+  });
+}
+
 export async function setProductStatus(id: string, status: ProductStatus) {
   id = z.string().uuid().parse(id);
   status = productStatusSchema.parse(status);

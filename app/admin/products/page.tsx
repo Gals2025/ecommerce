@@ -7,6 +7,7 @@ import { productListParamsSchema } from "@/validators";
 import { PageHeader } from "@/components/admin/page-header";
 import { PageGuard } from "@/components/admin/page-guard";
 import { ExportButtons } from "@/components/admin/export-buttons";
+import { ImportDialog } from "@/components/admin/import-dialog";
 import { Button, Input, Select } from "@/components/ui";
 import { Pagination } from "@/components/ui/pagination";
 import { DbUnreachable, EmptyState } from "@/components/ui/empty-state";
@@ -116,6 +117,7 @@ export default async function AdminProducts({
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <ExportButtons endpoint="/api/admin/exports/products" />
+            <ImportDialog />
             <Link href="/admin/products/new">
               <Button>New product</Button>
             </Link>
