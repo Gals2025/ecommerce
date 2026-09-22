@@ -17,8 +17,8 @@ export async function StoreHeader({ categories }: { categories: StoreNavCategory
   }
   return (
     <header className="sticky top-0 z-40 bg-white shadow-sm">
-      {/* Utility bar */}
-      <div className="bg-stone-900 text-white">
+      {/* Utility bar — desktop only to keep the mobile header compact */}
+      <div className="hidden bg-stone-900 text-white sm:block">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-1.5 text-[11px] sm:text-xs">
           <p className="truncate font-medium tracking-wide">
             Brand-new pickleball gear · Member prices on every order
@@ -32,9 +32,9 @@ export async function StoreHeader({ categories }: { categories: StoreNavCategory
       </div>
       {/* Main bar */}
       <div className="border-b border-stone-200/80">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2 sm:gap-3 sm:py-3">
           <Link href="/" className="flex shrink-0 items-baseline gap-1.5 tracking-tight">
-            <span className="font-display text-xl font-semibold">Pickle Unltd</span>
+            <span className="font-display text-lg font-semibold sm:text-xl">Pickle Unltd</span>
             <span className="hidden text-[11px] font-medium uppercase tracking-[0.18em] text-emerald-700 lg:inline">Pickleball</span>
           </Link>
           <form action="/shop" method="get" className="relative hidden min-w-0 flex-1 sm:block">
@@ -52,24 +52,24 @@ export async function StoreHeader({ categories }: { categories: StoreNavCategory
               <User className="h-4 w-4" />
               {userId ? "Account" : "Sign in"}
             </Link>
-            <Link href="/account" className="inline-flex min-h-[44px] items-center rounded-full px-3 py-1.5 text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 md:hidden">
+            <Link href="/account" className="inline-flex min-h-[40px] items-center rounded-full px-2.5 py-1 text-sm text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 md:hidden">
               {userId ? "Account" : "Sign in"}
             </Link>
-            <Link href="/cart" className="relative flex min-h-[44px] items-center gap-1.5 rounded-full bg-stone-900 px-4 py-2 font-medium text-white transition hover:bg-emerald-800">
+            <Link href="/cart" aria-label="Cart" className="relative flex h-10 w-10 items-center justify-center rounded-full bg-stone-900 font-medium text-white transition hover:bg-emerald-800 sm:h-auto sm:w-auto sm:min-h-[44px] sm:gap-1.5 sm:px-4 sm:py-2">
               <ShoppingBag className="h-4 w-4" />
               <span className="hidden sm:inline">Cart</span>
-              {count > 0 && <span className="rounded-full bg-emerald-500 px-1.5 py-0.5 text-xs font-semibold text-white">{count}</span>}
+              {count > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-emerald-500 px-1.5 py-0.5 text-xs font-semibold text-white sm:static">{count}</span>}
             </Link>
           </nav>
         </div>
         <div className="border-t border-stone-200/70 sm:hidden">
-          <form action="/shop" method="get" className="relative mx-auto max-w-6xl px-4 py-2">
+          <form action="/shop" method="get" className="relative mx-auto max-w-6xl px-4 py-1.5">
             <input
               name="q"
               placeholder="Search paddles, balls, apparel…"
-              className="w-full rounded-full border border-stone-200 bg-stone-100/70 py-2.5 pl-4 pr-14 text-base outline-none transition placeholder:text-stone-400 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-600/15 sm:text-sm"
+              className="w-full rounded-full border border-stone-200 bg-stone-100/70 py-2 pl-4 pr-12 text-base outline-none transition placeholder:text-stone-400 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-600/15 sm:text-sm"
             />
-            <button type="submit" aria-label="Search" className="absolute right-5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-stone-900 p-2.5 text-white transition hover:bg-emerald-800">
+            <button type="submit" aria-label="Search" className="absolute right-5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-stone-900 p-2 text-white transition hover:bg-emerald-800">
               <Search className="h-4 w-4" />
             </button>
           </form>
@@ -78,16 +78,16 @@ export async function StoreHeader({ categories }: { categories: StoreNavCategory
       {/* Category nav */}
       {categories.length > 0 && (
         <nav className="overflow-x-auto border-b border-stone-200/70 bg-white">
-          <div className="mx-auto flex max-w-6xl items-center gap-1 whitespace-nowrap px-4 py-2 text-[13px]">
-            <Link href="/shop" className="flex min-h-[44px] items-center rounded-full bg-stone-900 px-3 py-1 font-medium text-white transition hover:bg-emerald-800">
+          <div className="mx-auto flex max-w-6xl items-center gap-1 whitespace-nowrap px-4 py-1 text-[13px] sm:py-2">
+            <Link href="/shop" className="flex min-h-[40px] items-center rounded-full bg-stone-900 px-3 py-1 font-medium text-white transition hover:bg-emerald-800 sm:min-h-[44px]">
               Shop All
             </Link>
             {categories.map((c) => (
-              <Link key={c.id} href={`/shop?categoryId=${c.id}`} className="flex min-h-[44px] items-center rounded-full px-3 py-1 font-medium text-stone-600 transition hover:bg-emerald-50 hover:text-emerald-800">
+              <Link key={c.id} href={`/shop?categoryId=${c.id}`} className="flex min-h-[40px] items-center rounded-full px-3 py-1 font-medium text-stone-600 transition hover:bg-emerald-50 hover:text-emerald-800 sm:min-h-[44px]">
                 {c.name}
               </Link>
             ))}
-            <Link href="/promotions" className="flex min-h-[44px] items-center rounded-full px-3 py-1 font-semibold text-red-600 transition hover:bg-red-50">
+            <Link href="/promotions" className="flex min-h-[40px] items-center rounded-full px-3 py-1 font-semibold text-red-600 transition hover:bg-red-50 sm:min-h-[44px]">
               Deals
             </Link>
           </div>
