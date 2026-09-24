@@ -16,7 +16,7 @@ export async function StoreHeader({ categories }: { categories: StoreNavCategory
     count = 0;
   }
   return (
-    <header className="sticky top-0 z-40 bg-white shadow-sm">
+    <header className="bg-white sm:sticky sm:top-0 sm:z-40 sm:shadow-sm">
       {/* Utility bar — desktop only to keep the mobile header compact */}
       <div className="hidden bg-stone-900 text-white sm:block">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-1.5 text-[11px] sm:text-xs">
@@ -30,8 +30,8 @@ export async function StoreHeader({ categories }: { categories: StoreNavCategory
           </nav>
         </div>
       </div>
-      {/* Main bar */}
-      <div className="border-b border-stone-200/80">
+      {/* Main bar — sticky on mobile, static on desktop (parent header sticks) */}
+      <div className="sticky top-0 z-40 border-b border-stone-200/80 bg-white shadow-sm sm:static sm:z-auto sm:shadow-none">
         <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2 sm:gap-3 sm:py-3">
           <Link href="/" className="flex shrink-0 items-baseline gap-1.5 tracking-tight">
             <span className="font-display text-lg font-semibold sm:text-xl">Pickle Unltd</span>
@@ -75,7 +75,7 @@ export async function StoreHeader({ categories }: { categories: StoreNavCategory
           </form>
         </div>
       </div>
-      {/* Category nav */}
+      {/* Category nav — static so it scrolls away on mobile, sticks via parent header on desktop */}
       {categories.length > 0 && (
         <nav className="overflow-x-auto border-b border-stone-200/70 bg-white">
           <div className="mx-auto flex max-w-6xl items-center gap-1 whitespace-nowrap px-4 py-1 text-[13px] sm:py-2">
