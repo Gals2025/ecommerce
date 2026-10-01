@@ -5,6 +5,7 @@ import { roles, userRoles, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireUser, getUserRoles } from "@/lib/rbac";
 import type { AppRole } from "@/lib/auth";
+import { canGrant, ROLE_RANK } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 
 const STAFF_ROLES: AppRole[] = ["ORDER_STAFF", "INVENTORY_STAFF", "ADMIN", "SUPER_ADMIN"];
@@ -22,13 +23,14 @@ export async function getMyRoles(): Promise<AppRole[]> {
   return getUserRoles(session.user.id);
 }
 
-// SUPER_ADMIN only: grant a role. Audited.
+// Hierarchical: may grant only roles strictly below your max rank.
+// SUPER_ADMIN can grant anything; ADMIN can grant staff roles only.
 export async function grantRole(targetUserId: string, role: AppRole) {
   const session = await requireUser();
   const held = await getUserRoles(session.user.id);
-  if (!held.includes("SUPER_ADMIN")) {
-    await audit(session.user.id, "auth.forbidden", "auth", targetUserId, { action: "role.grant", role }).catch(() => {});
-    throw new Error("Forbidden");
+  if (!canGrant(held, role)) {
+    await audit(session.user.id, "auth.forbidden", "auth", targetUserId, { action: "role.grant", role, held }).catch(() => {});
+    throw new Error("Forbidden: cannot assign a role at or above your own level");
   }
   const [roleRow] = await db.select().from(roles).where(eq(roles.name, role)).limit(1);
   if (!roleRow) throw new Error(`Unknown role ${role}`);
@@ -42,16 +44,20 @@ export async function grantRole(targetUserId: string, role: AppRole) {
   return true;
 }
 
-// SUPER_ADMIN only: revoke a role. Cannot revoke your own SUPER_ADMIN.
+// Hierarchical revoke: may revoke only roles you could grant.
+// Cannot revoke your own highest-rank role (prevents self-demotion).
 export async function revokeRole(targetUserId: string, role: AppRole) {
   const session = await requireUser();
   const held = await getUserRoles(session.user.id);
-  if (!held.includes("SUPER_ADMIN")) {
-    await audit(session.user.id, "auth.forbidden", "auth", targetUserId, { action: "role.revoke", role }).catch(() => {});
-    throw new Error("Forbidden");
+  if (!canGrant(held, role)) {
+    await audit(session.user.id, "auth.forbidden", "auth", targetUserId, { action: "role.revoke", role, held }).catch(() => {});
+    throw new Error("Forbidden: cannot revoke a role at or above your own level");
   }
-  if (targetUserId === session.user.id && role === "SUPER_ADMIN") {
-    throw new Error("Cannot revoke your own SUPER_ADMIN role");
+  if (targetUserId === session.user.id) {
+    const myMax = Math.max(0, ...held.map((r) => ROLE_RANK[r] ?? 0));
+    if ((ROLE_RANK[role] ?? 0) >= myMax) {
+      throw new Error("Cannot revoke your own highest role");
+    }
   }
   const [roleRow] = await db.select().from(roles).where(eq(roles.name, role)).limit(1);
   if (!roleRow) throw new Error(`Unknown role ${role}`);

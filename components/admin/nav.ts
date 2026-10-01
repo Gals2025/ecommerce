@@ -77,7 +77,7 @@ export const ADMIN_NAV: NavSection[] = [
   {
     label: "Administration",
     items: [
-      { label: "Users", href: "/admin/users", permissions: ["users.manage_roles"] },
+      { label: "Users", href: "/admin/users", permissions: ["users.view", "users.manage_roles"] },
       { label: "Settings", href: "/admin/settings", permissions: ["settings.manage"] },
       { label: "Audit Logs", href: "/admin/audit-logs" },
     ],

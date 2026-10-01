@@ -484,3 +484,33 @@ export const transferSchema = z.object({
   path: ["toLocationId"],
 });
 export type TransferInput = z.infer<typeof transferSchema>;
+
+// ---------- Users ----------
+
+export const creatableRoleSchema = z.enum([
+  "SUPER_ADMIN",
+  "ADMIN",
+  "INVENTORY_STAFF",
+  "ORDER_STAFF",
+  "CUSTOMER",
+]);
+
+export const createUserSchema = z.object({
+  name: z.string().min(1).max(120),
+  email: z.string().email().max(255),
+  password: z.string().min(8).max(128),
+  roles: z.array(creatableRoleSchema).min(1).max(4),
+}).superRefine((data, ctx) => {
+  if (new Set(data.roles).size !== data.roles.length) {
+    ctx.addIssue({ code: "custom", path: ["roles"], message: "Duplicate roles are not allowed" });
+  }
+});
+export type CreateUserInput = z.infer<typeof createUserSchema>;
+
+export const listUsersParamsSchema = z.object({
+  q: z.string().max(100).default(""),
+  role: creatableRoleSchema.nullable().optional(),
+  page: z.number().int().min(1).default(1),
+  pageSize: z.number().int().min(1).max(100).default(20),
+});
+export type ListUsersParams = z.infer<typeof listUsersParamsSchema>;
