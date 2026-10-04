@@ -16,7 +16,7 @@ import {
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { requireAdmin, getSession } from "@/lib/rbac";
+import { requireAdmin, requirePermission, getSession } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
 import { recordMovement } from "@/lib/inventory";
 import {
@@ -698,7 +698,7 @@ export async function updateProductKeepVariants(id: string, input: unknown) {
 export async function setProductStatus(id: string, status: ProductStatus) {
   id = z.string().uuid().parse(id);
   status = productStatusSchema.parse(status);
-  const session = await requireAdmin();
+  const session = await requirePermission("catalog.manage");
   const sync = statusSync(status);
   const existing = (await db.select().from(products).where(eq(products.id, id)).limit(1))[0];
   if (!existing) throw new Error("Product not found");
@@ -717,7 +717,7 @@ export async function setProductStatus(id: string, status: ProductStatus) {
 export async function archiveProduct(id: string, archived = true) {
   id = z.string().uuid().parse(id);
   archived = z.boolean().parse(archived);
-  const session = await requireAdmin();
+  const session = await requirePermission("catalog.manage");
   const existing = (await db.select().from(products).where(eq(products.id, id)).limit(1))[0];
   if (!existing) throw new Error("Product not found");
   // Archiving maps to status=archived; restoring maps back to inactive (never auto-active).

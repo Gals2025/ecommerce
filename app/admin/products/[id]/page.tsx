@@ -182,11 +182,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           ) : (
             <ConfirmButton
               form="product-archive"
-              title="Archive this product?"
-              description={`${product.name} will be hidden from the storefront. Variants and history are kept.`}
-              confirmLabel="Archive product"
+              title="Delete this product?"
+              description={`${product.name} will be removed from the storefront. Variants, stock history, orders, and audit entries are kept, and you can restore it later (restores as inactive).`}
+              confirmLabel="Delete product"
             >
-              Archive product
+              Delete product
             </ConfirmButton>
           )}
         </form>
