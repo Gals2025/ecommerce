@@ -47,8 +47,8 @@ const ALIASES: Record<string, string> = {
   quantity: "stock",
 };
 
-function normalizeHeader(h: string): string {
-  return h.trim().toLowerCase().replace(/[₱₴$()\-\s_]+/g, "");
+function normalizeHeader(h: unknown): string {
+  return String(h ?? "").trim().toLowerCase().replace(/[₱₴$()\-\s_]+/g, "");
 }
 
 function splitCSVLine(line: string): string[] {
@@ -152,24 +152,24 @@ export async function parseImportFile(buffer: Buffer, filename: string): Promise
 
 // ---------- value parsers ----------
 
-export function parseMoney(s: string): number | null | "invalid" {
-  const t = s.trim().replace(/[₱₴$,\s'"]/g, "");
+export function parseMoney(s: unknown): number | null | "invalid" {
+  const t = String(s ?? "").trim().replace(/[₱₴$,\s'"]/g, "");
   if (t === "" || t === "—" || t === "-") return null;
   const n = Number(t);
   if (!Number.isFinite(n) || n < 0) return "invalid";
   return pesosToCentavos(n);
 }
 
-export function parseStock(s: string): number | null | "invalid" {
-  const t = s.trim().replace(/,/g, "");
+export function parseStock(s: unknown): number | null | "invalid" {
+  const t = String(s ?? "").trim().replace(/,/g, "");
   if (t === "") return null;
   const n = Number(t);
   if (!Number.isInteger(n) || n < 0) return "invalid";
   return n;
 }
 
-export function parseFeatured(s: string): boolean | null | "invalid" {
-  const t = s.trim().toLowerCase();
+export function parseFeatured(s: unknown): boolean | null | "invalid" {
+  const t = String(s ?? "").trim().toLowerCase();
   if (t === "") return null;
   if (["yes", "y", "true", "1", "featured"].includes(t)) return true;
   if (["no", "n", "false", "0"].includes(t)) return false;
@@ -178,8 +178,8 @@ export function parseFeatured(s: string): boolean | null | "invalid" {
 
 const STATUSES = productStatusSchema.options as readonly string[];
 
-export function parseStatus(s: string): string | null | "invalid" {
-  const t = s.trim().toLowerCase();
+export function parseStatus(s: unknown): string | null | "invalid" {
+  const t = String(s ?? "").trim().toLowerCase();
   if (t === "") return null;
   return (STATUSES as readonly string[]).includes(t) ? t : "invalid";
 }
@@ -197,7 +197,7 @@ export function groupRows(rows: RawRow[]): ImportGroup[] {
   const map = new Map<string, ImportGroup>();
   for (const r of rows) {
     const v = r.values;
-    const key = (v.productSku || v.product).toLowerCase();
+    const key = String(v.productSku || v.product || "").toLowerCase();
     const g =
       map.get(key) ??
       ({ key, rowIndexes: [], product: v.product || v.productSku, rows: [] } as ImportGroup);
@@ -291,17 +291,17 @@ export function validateGroup(
       errors.push(`• ${label}variantSku: SKU is required`);
       return;
     }
-    const price = parseMoney(r.variantPrice);
+    const price = parseMoney(r.variantPrice ?? "");
     if (r.variantPrice && price === "invalid") {
       errors.push(`• ${label}variantPrice: Invalid peso amount`);
       return;
     }
-    const cost = parseMoney(r.cost);
+    const cost = parseMoney(r.cost ?? "");
     if (r.cost && cost === "invalid") {
       errors.push(`• ${label}variantPrice: Invalid peso amount`.replace("variantPrice", "cost"));
       return;
     }
-    const stock = parseStock(r.stock);
+    const stock = parseStock(r.stock ?? "");
     if (stock === "invalid") {
       errors.push(`• ${label}stock: Must be a whole number ≥ 0`);
       return;
@@ -386,7 +386,7 @@ export function groupStock(group: ImportGroup): Map<string, number> {
   group.rows.forEach((r) => {
     const sku = r.variantSku || r.productSku;
     if (!sku) return;
-    const s = parseStock(r.stock);
+    const s = parseStock(r.stock ?? "");
     map.set(sku, typeof s === "number" ? s : 0);
   });
   return map;

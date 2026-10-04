@@ -31,18 +31,35 @@ export async function POST(req: Request) {
   }
 
   const refs = await fetchRefMaps();
-  const groups = groupRows(rows).map((g) => {
-    const v = validateGroup(g, refs, mode);
-    return {
-      product: v.product,
-      rows: v.rowIndexes,
-      ok: v.errors.length === 0,
-      errors: v.errors,
-      newBrands: [...new Set(v.pendingBrands)],
-      newCategories: [...new Set(v.pendingCategories)],
-      stock: v.totalStock,
-    };
-  });
+  let groups;
+  try {
+    groups = groupRows(rows).map((g) => {
+      try {
+        const v = validateGroup(g, refs, mode);
+        return {
+          product: v.product,
+          rows: v.rowIndexes,
+          ok: v.errors.length === 0,
+          errors: v.errors,
+          newBrands: [...new Set(v.pendingBrands)],
+          newCategories: [...new Set(v.pendingCategories)],
+          stock: v.totalStock,
+        };
+      } catch (e) {
+        return {
+          product: g.product || g.key || "Unknown product",
+          rows: g.rowIndexes,
+          ok: false,
+          errors: [`• ${e instanceof Error ? e.message.split("\n")[0] : "Validation failed"}`],
+          newBrands: [] as string[],
+          newCategories: [] as string[],
+          stock: 0,
+        };
+      }
+    });
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Validation failed" }, { status: 400 });
+  }
   const okCount = groups.filter((g) => g.ok).length;
   return NextResponse.json({
     mode,

@@ -218,9 +218,9 @@ export async function POST(req: Request) {
           variants: mergedVariants,
         };
         // Base price: keep existing when the cell was empty.
-        if (firstRaw.basePrice.trim() === "") merged.basePrice = existing.basePrice;
-        if (firstRaw.status.trim() === "") merged.status = existing.status as ProductInput["status"];
-        if (firstRaw.featured.trim() === "") merged.featured = existing.featured ?? false;
+        if (String(firstRaw.basePrice ?? "").trim() === "") merged.basePrice = existing.basePrice;
+        if (String(firstRaw.status ?? "").trim() === "") merged.status = existing.status as ProductInput["status"];
+        if (String(firstRaw.featured ?? "").trim() === "") merged.featured = existing.featured ?? false;
 
         const id = await updateProductKeepVariants(targetId, merged);
         results.push({ product: existing.name, rows: v.rowIndexes, ok: true, id, errors: [] });
