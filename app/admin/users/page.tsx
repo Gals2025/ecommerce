@@ -3,6 +3,7 @@ import { getStrictAdminSession } from "@/lib/rbac";
 import { PageGuard } from "@/components/admin/page-guard";
 import { CreateUserForm } from "@/components/admin/create-user-form";
 import { UserRoleButtons } from "@/components/admin/user-role-buttons";
+import { SetPasswordForm } from "@/components/admin/set-password-form";
 import { DbUnreachable } from "@/components/ui/empty-state";
 import { SearchInput, FilterBar } from "@/components/ui/search-input";
 import { Pagination } from "@/components/ui/pagination";
@@ -33,6 +34,7 @@ export default async function UsersPage({
   }
   const session = await getStrictAdminSession().catch(() => null);
   const selfId = session?.user.id ?? "";
+  const isSuperAdmin = (data?.myRoles ?? []).includes("SUPER_ADMIN");
 
   const hrefFor = (p: number) => {
     const params = new URLSearchParams();
@@ -69,6 +71,7 @@ export default async function UsersPage({
                   </div>
                   <div className="text-gray-500">Roles: {u.roles.join(", ") || "CUSTOMER (implicit)"}</div>
                   <UserRoleButtons userId={u.id} roles={u.roles} grantable={data!.grantable} selfId={selfId} />
+                  {isSuperAdmin && <SetPasswordForm userId={u.id} userEmail={u.email} />}
                 </div>
               ))}
               {data.users.length === 0 && <p className="text-sm">No users found.</p>}

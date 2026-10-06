@@ -527,3 +527,11 @@ export const changePasswordSchema = z
     path: ["newPassword"],
   });
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
+// ---------- Admin (SUPER_ADMIN sets any user's password) ----------
+
+export const adminSetPasswordSchema = z.object({
+  userId: z.string().min(1).max(128),
+  newPassword: z.string().min(8).max(128),
+});
+export type AdminSetPasswordInput = z.infer<typeof adminSetPasswordSchema>;

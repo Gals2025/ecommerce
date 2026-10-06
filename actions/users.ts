@@ -1,12 +1,12 @@
 "use server";
 
 import { db } from "@/db";
-import { roles, userRoles, users } from "@/db/schema";
+import { refreshSessions, roles, userRoles, users } from "@/db/schema";
 import { and, desc, eq, ilike, isNull, or } from "drizzle-orm";
 import { getUserRoles, requirePermission } from "@/lib/rbac";
 import { canGrant, filterGrantable } from "@/lib/permissions";
 import { hashPassword, newUserId, type AppRole } from "@/lib/auth";
-import { createUserSchema, listUsersParamsSchema } from "@/validators";
+import { adminSetPasswordSchema, createUserSchema, listUsersParamsSchema } from "@/validators";
 import { audit } from "@/lib/audit";
 
 export type UserWithRoles = {
@@ -142,4 +142,34 @@ export async function createUser(input: unknown): Promise<{ id: string; email: s
     await audit(session.user.id, "role.grant", "users", id, { role: r, targetEmail: email }).catch(() => {});
   }
   return { id, email };
+}
+
+// SUPER_ADMIN-only: set any user's password directly (staff, customers, self).
+// No current-password check — the admin defines the new password outright.
+// Revokes the target's refresh sessions and audits; never logs the password.
+export async function adminSetPassword(input: unknown): Promise<{ id: string; email: string }> {
+  const session = await requirePermission("users.view");
+  const held = await getUserRoles(session.user.id);
+  if (!held.includes("SUPER_ADMIN")) {
+    await audit(session.user.id, "auth.forbidden", "users", session.user.id, {
+      action: "user.password_reset",
+      held,
+    }).catch(() => {});
+    throw new Error("Forbidden: SUPER_ADMIN only");
+  }
+  const data = adminSetPasswordSchema.parse(input);
+  const [target] = await db.select().from(users).where(eq(users.id, data.userId)).limit(1);
+  if (!target || target.deletedAt) throw new Error("User not found");
+
+  await db
+    .update(users)
+    .set({ passwordHash: await hashPassword(data.newPassword), updatedAt: new Date() })
+    .where(eq(users.id, target.id));
+  // Revoke the target's refresh sessions so their other devices re-login.
+  // Any live 8h access JWT stays valid until expiry (stateless).
+  await db.delete(refreshSessions).where(eq(refreshSessions.userId, target.id));
+  await audit(session.user.id, "user.password_reset", "users", target.id, {
+    targetEmail: target.email,
+  });
+  return { id: target.id, email: target.email };
 }
