@@ -1,10 +1,11 @@
 "use server";
 
 import { db } from "@/db";
-import { roles, userRoles, users } from "@/db/schema";
+import { refreshSessions, roles, userRoles, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireUser, getUserRoles } from "@/lib/rbac";
-import type { AppRole } from "@/lib/auth";
+import { hashPassword, verifyPassword, type AppRole } from "@/lib/auth";
+import { changePasswordSchema } from "@/validators";
 import { canGrant, ROLE_RANK } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 
@@ -81,5 +82,38 @@ export async function listUsersWithRoles() {
     ...u,
     roles: grants.filter((g) => g.userId === u.id).map((g) => nameById.get(g.roleId)!).filter(Boolean),
   }));
+}
+
+// Self-service: logged-in user changes their own password.
+// Verifies the current password, then hashes + stores the new one,
+// revokes all refresh sessions (other devices must re-login), and audits.
+export async function changeOwnPassword(input: unknown) {
+  const session = await requireUser();
+  const parsed = changePasswordSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Invalid input");
+  }
+  const [user] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
+  if (!user || user.deletedAt) throw new Error("Unauthorized");
+  if (!user.passwordHash) {
+    throw new Error("No password set — use forgot-password to create one");
+  }
+  const ok = await verifyPassword(parsed.data.currentPassword, user.passwordHash);
+  if (!ok) {
+    await audit(session.user.id, "auth.forbidden", "auth", session.user.id, {
+      action: "password.change",
+      reason: "bad_current_password",
+    }).catch(() => {});
+    throw new Error("Current password is incorrect");
+  }
+  await db
+    .update(users)
+    .set({ passwordHash: await hashPassword(parsed.data.newPassword), updatedAt: new Date() })
+    .where(eq(users.id, session.user.id));
+  // Revoke all refresh sessions so other devices re-login with the new password.
+  // The current admin tab keeps its 8h access JWT until expiry (stateless).
+  await db.delete(refreshSessions).where(eq(refreshSessions.userId, session.user.id));
+  await audit(session.user.id, "auth.password_change", "auth", session.user.id, {});
+  return true;
 }
 
