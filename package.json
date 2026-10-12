@@ -12,6 +12,7 @@
     "db:push": "drizzle-kit push",
     "db:seed": "tsx db/seed.ts",
     "db:make-admin": "tsx scripts/make-admin.ts",
+    "db:backfill-sku": "tsx scripts/backfill-sku.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
