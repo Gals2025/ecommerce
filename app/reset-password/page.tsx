@@ -9,6 +9,7 @@ function ResetForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const token = params.get("token") ?? "";
+  const next = params.get("next") ?? "";
 
   if (!token) return <p className="mt-4 text-sm text-red-600">Missing or invalid reset link. Request a new one.</p>;
 
@@ -29,6 +30,7 @@ function ResetForm() {
         const res = await authClient.resetPassword({ newPassword: pw, token });
         setLoading(false);
         if (res.error) setError(res.error.message ?? "Reset failed — the link may have expired");
+        else if (next.startsWith("/admin")) router.push("/login?next=/admin");
         else router.push("/login");
       }}
     >

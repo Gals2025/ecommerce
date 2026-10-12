@@ -4,6 +4,7 @@ import { PageGuard } from "@/components/admin/page-guard";
 import { CreateUserForm } from "@/components/admin/create-user-form";
 import { UserRoleButtons } from "@/components/admin/user-role-buttons";
 import { SetPasswordForm } from "@/components/admin/set-password-form";
+import { SendResetEmailButton } from "@/components/admin/send-reset-email-button";
 import { DbUnreachable } from "@/components/ui/empty-state";
 import { SearchInput, FilterBar } from "@/components/ui/search-input";
 import { Pagination } from "@/components/ui/pagination";
@@ -35,6 +36,7 @@ export default async function UsersPage({
   const session = await getStrictAdminSession().catch(() => null);
   const selfId = session?.user.id ?? "";
   const isSuperAdmin = (data?.myRoles ?? []).includes("SUPER_ADMIN");
+  const canSendReset = (data?.myRoles ?? []).some((r) => r === "ADMIN" || r === "SUPER_ADMIN");
 
   const hrefFor = (p: number) => {
     const params = new URLSearchParams();
@@ -71,6 +73,7 @@ export default async function UsersPage({
                   </div>
                   <div className="text-gray-500">Roles: {u.roles.join(", ") || "CUSTOMER (implicit)"}</div>
                   <UserRoleButtons userId={u.id} roles={u.roles} grantable={data!.grantable} selfId={selfId} />
+                  {canSendReset && <SendResetEmailButton userId={u.id} userEmail={u.email} />}
                   {isSuperAdmin && <SetPasswordForm userId={u.id} userEmail={u.email} />}
                 </div>
               ))}

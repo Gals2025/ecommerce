@@ -1,13 +1,16 @@
 "use server";
 
+import { createHash, randomBytes } from "node:crypto";
 import { db } from "@/db";
-import { refreshSessions, roles, userRoles, users } from "@/db/schema";
+import { passwordResetTokens, refreshSessions, roles, userRoles, users } from "@/db/schema";
 import { and, desc, eq, ilike, isNull, or } from "drizzle-orm";
 import { getUserRoles, requirePermission } from "@/lib/rbac";
-import { canGrant, filterGrantable } from "@/lib/permissions";
+import { ROLE_RANK, canGrant, filterGrantable } from "@/lib/permissions";
 import { hashPassword, newUserId, type AppRole } from "@/lib/auth";
-import { adminSetPasswordSchema, createUserSchema, listUsersParamsSchema } from "@/validators";
+import { adminRequestResetSchema, adminSetPasswordSchema, createUserSchema, listUsersParamsSchema } from "@/validators";
 import { audit } from "@/lib/audit";
+import { queueEmail } from "@/lib/email";
+import { adminPasswordResetEmail, passwordResetEmail } from "@/emails";
 
 export type UserWithRoles = {
   id: string;
@@ -170,6 +173,57 @@ export async function adminSetPassword(input: unknown): Promise<{ id: string; em
   await db.delete(refreshSessions).where(eq(refreshSessions.userId, target.id));
   await audit(session.user.id, "user.password_reset", "users", target.id, {
     targetEmail: target.email,
+  });
+  return { id: target.id, email: target.email };
+}
+
+const STAFF_ROLES: AppRole[] = ["ORDER_STAFF", "INVENTORY_STAFF", "ADMIN", "SUPER_ADMIN"];
+
+// ADMIN and above: email a 1-hour single-use reset link instead of setting a
+// plaintext password. Hierarchical — you may only reset users strictly below
+// your max rank (SUPER_ADMIN omnipotent). Audited; generic errors avoid leaks.
+export async function adminRequestPasswordReset(input: unknown): Promise<{ id: string; email: string }> {
+  const session = await requirePermission("users.view");
+  const held = await getUserRoles(session.user.id);
+  if (!held.includes("ADMIN") && !held.includes("SUPER_ADMIN")) {
+    await audit(session.user.id, "auth.forbidden", "users", session.user.id, {
+      action: "user.password_reset_request",
+      held,
+    }).catch(() => {});
+    throw new Error("Forbidden: ADMIN or SUPER_ADMIN only");
+  }
+  const data = adminRequestResetSchema.parse(input);
+  const [target] = await db.select().from(users).where(eq(users.id, data.userId)).limit(1);
+  if (!target || target.deletedAt) throw new Error("User not found");
+
+  const targetRoles = await getUserRoles(target.id);
+  const actorMax = Math.max(0, ...held.map((r) => ROLE_RANK[r] ?? 0));
+  const targetMax = targetRoles.length > 0 ? Math.max(...targetRoles.map((r) => ROLE_RANK[r] ?? 0)) : ROLE_RANK.CUSTOMER;
+  if (!held.includes("SUPER_ADMIN") && !(actorMax > targetMax)) {
+    await audit(session.user.id, "auth.forbidden", "users", target.id, {
+      action: "user.password_reset_request",
+      held,
+      targetRoles,
+    }).catch(() => {});
+    throw new Error("Forbidden: cannot reset a user at or above your own level");
+  }
+
+  const raw = randomBytes(32).toString("hex");
+  await db.insert(passwordResetTokens).values({
+    userId: target.id,
+    tokenHash: createHash("sha256").update(raw).digest("hex"),
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+  });
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const isStaff = targetRoles.some((r) => STAFF_ROLES.includes(r));
+  const resetUrl = isStaff
+    ? `${appUrl}/reset-password?token=${raw}&next=/admin`
+    : `${appUrl}/reset-password?token=${raw}`;
+  const { subject, html } = isStaff ? adminPasswordResetEmail(resetUrl) : passwordResetEmail(resetUrl);
+  await queueEmail({ to: target.email, template: "password_reset", subject, html, userId: target.id }).catch(() => {});
+  await audit(session.user.id, "user.password_reset_request", "users", target.id, {
+    targetEmail: target.email,
+    staff: isStaff,
   });
   return { id: target.id, email: target.email };
 }

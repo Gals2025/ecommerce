@@ -551,3 +551,10 @@ export const adminSetPasswordSchema = z.object({
   newPassword: z.string().min(8).max(128),
 });
 export type AdminSetPasswordInput = z.infer<typeof adminSetPasswordSchema>;
+
+// ---------- Admin (ADMIN+ sends a reset email link to a user) ----------
+
+export const adminRequestResetSchema = z.object({
+  userId: z.string().min(1).max(128),
+});
+export type AdminRequestResetInput = z.infer<typeof adminRequestResetSchema>;

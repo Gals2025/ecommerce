@@ -38,8 +38,12 @@ export const signUp = {
     signUpWithPassword(args.email, args.password, args.name),
 };
 export const authClient = {
-  requestPasswordReset: async (args: { email: string; redirectTo?: string }) =>
-    req("/api/auth/request-reset", { email: args.email }),
+  requestPasswordReset: async (args: { email: string; redirectTo?: string; context?: "admin" | "storefront" }) =>
+    req("/api/auth/request-reset", {
+      email: args.email,
+      redirectTo: args.redirectTo,
+      context: args.context,
+    }),
   resetPassword: async (args: { newPassword: string; token: string }) =>
     req("/api/auth/reset", { password: args.newPassword, token: args.token }),
 };

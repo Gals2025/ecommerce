@@ -59,6 +59,12 @@ function LoginForm() {
         <a href="/register" className="underline">Create an account</a>
         <a href="/forgot-password" className="underline">Forgot password?</a>
       </div>
+      {(expired || next?.startsWith("/admin")) && (
+        <p className="mt-2 text-sm text-gray-600">
+          Staff locked out?{" "}
+          <a href="/admin-forgot-password" className="underline">Reset admin password</a>
+        </p>
+      )}
     </>
   );
 }

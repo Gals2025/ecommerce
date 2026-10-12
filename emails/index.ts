@@ -108,3 +108,11 @@ export const passwordResetEmail = (resetUrl: string) => ({
     `<p>We received a request to reset your password. Click the link below (valid for 1 hour):</p><p><a href="${resetUrl}">Reset password</a></p><p>If you did not request this, ignore this email.</p>`
   ),
 });
+
+export const adminPasswordResetEmail = (resetUrl: string) => ({
+  subject: `Reset your admin password`,
+  html: wrap(
+    `Reset your admin password`,
+    `<p>We received a request to reset your staff admin password. Click the link below (valid for 1 hour, single-use):</p><p><a href="${resetUrl}">Reset admin password</a></p><p>After resetting, sign in again — admin sessions expire after 8 hours and never auto-renew. If you did not request this, ignore this email and alert your administrator.</p>`
+  ),
+});
