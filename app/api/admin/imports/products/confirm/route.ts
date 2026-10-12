@@ -12,11 +12,12 @@ import { revalidatePath } from "next/cache";
 import { getStrictAdminSession, hasPermission } from "@/lib/rbac";
 import { createProduct, updateProductKeepVariants } from "@/actions/catalog";
 import { receiveStock } from "@/lib/inventory";
+import { fillMissingSkus } from "@/lib/sku-alloc";
 import { slugify, type ProductInput } from "@/validators";
 import {
   fetchRefMaps,
   groupRows,
-  groupStock,
+  groupStockForSkus,
   parseImportFile,
   validateGroup,
   type ImportMode,
@@ -107,6 +108,15 @@ export async function POST(req: Request) {
         if (!v.input.categoryId) v.input.categoryId = id;
       }
 
+      // Blank SKUs (new mode) auto-fill to MMDDYYYY-PAD-NNNN BEFORE clash
+      // checks, so all downstream SKU-keyed logic sees the final values.
+      // Update-mode blanks already failed validation above — this is a no-op there.
+      const filled = await fillMissingSkus(db, v.input.categoryId ?? null, {
+        sku: v.input.sku,
+        variants: v.input.variants,
+      });
+      v.input = { ...v.input, sku: filled.sku, variants: filled.variants };
+
       if (mode === "new") {
         const variantSkus = v.input.variants.map((x) => x.sku);
         const checks: string[] = [...variantSkus];
@@ -125,8 +135,9 @@ export async function POST(req: Request) {
           continue;
         }
         const id = await createProduct(v.input);
-        // Opening stock receipt at the default location.
-        const stock = groupStock(group);
+        // Opening stock receipt at the default location (positional: rows zip
+        // with the final variant SKU list, covering auto-generated SKUs).
+        const stock = groupStockForSkus(group, v.input.variants.map((x) => x.sku));
         const receipt = [...stock.entries()].filter(([, qty]) => qty > 0);
         if (receipt.length > 0) {
           const [loc] = await db.select().from(inventoryLocations).limit(1);

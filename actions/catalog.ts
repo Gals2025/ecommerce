@@ -19,6 +19,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin, requirePermission, getSession } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
 import { recordMovement } from "@/lib/inventory";
+import { fillMissingSkus, fillVariantSkus, isUniqueViolation } from "@/lib/sku-alloc";
 import {
   brandSchema,
   canonicalizeProductOptions,
@@ -76,8 +77,23 @@ async function ensureDefaultLocation(tx: Tx | typeof db) {
 
 // Zod errors serialize as JSON blobs — flatten to readable lines so the
 // admin form (which renders e.message) shows the actual problems.
-function parseProductInput(input: unknown) {
-  // Repair legacy drift first so saves aren't blocked by it; genuine
+// SKU sequence races (two admins creating in the same date+PAD group) surface
+// as unique-violations; the whole tx is side-effect-free until commit, so a
+// bounded retry safely picks the next sequence number.
+async function withSkuRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  let last: unknown = null;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      last = e;
+      if (!isUniqueViolation(e) || i === attempts - 1) throw e;
+    }
+  }
+  throw last;
+}
+
+function parseProductInput(input: unknown) {  // Repair legacy drift first so saves aren't blocked by it; genuine
   // errors (duplicates, unknown values) still fail below with readable lines.
   const parsed = productSchema.safeParse(canonicalizeProductOptions(input));
   if (parsed.success) return parsed.data;
@@ -322,9 +338,12 @@ function buildValueMap(
 
 export async function createProduct(input: unknown) {
   const session = await requireAdmin();
-  const data = parseProductInput(input);
-  return db.transaction(async (tx) => {
-    const slug = await uniqueSlug(tx, products, data.slug || data.name);
+  const raw = parseProductInput(input);
+  return withSkuRetry(() =>
+    db.transaction(async (tx) => {
+      // Blank/legacy SKUs auto-fill to MMDDYYYY-PAD-NNNN; conforming SKUs kept.
+      const data = await fillMissingSkus(tx, raw.categoryId ?? null, raw);
+      const slug = await uniqueSlug(tx, products, data.slug || data.name);
     const sync = statusSync(data.status);
     const [p] = await tx
       .insert(products)
@@ -393,7 +412,8 @@ export async function createProduct(input: unknown) {
     });
     revalidatePath("/admin/products");
     return p.id;
-  });
+    })
+  );
 }
 
 export async function updateProduct(id: string, input: unknown) {
@@ -416,7 +436,8 @@ export async function updateProduct(id: string, input: unknown) {
         slug,
         shortDescription: data.shortDescription ?? null,
         description: data.description ?? null,
-        sku: data.sku ?? null,
+        // Blank SKU on edit keeps the existing SKU (server only fills on create).
+        sku: data.sku && data.sku.trim() !== "" ? data.sku : existing.sku,
         barcode: data.barcode ?? null,
         brandId: data.brandId ?? null,
         categoryId: data.categoryId ?? null,
@@ -445,11 +466,18 @@ export async function updateProduct(id: string, input: unknown) {
     }
 
     // Variants: match by SKU, update or insert, archive missing.
+    // Newly added variants with blank/legacy SKUs auto-fill to MMDDYYYY-PAD-NNNN.
+    const filledVariants = await fillVariantSkus(
+      tx,
+      data.categoryId ?? existing.categoryId ?? null,
+      data.variants
+    );
+    const effectiveSku = data.sku && data.sku.trim() !== "" ? data.sku : existing.sku;
     // Simple products keep an auto-created default variant (see createProduct).
-    const inputVariants = data.variants.length > 0
-      ? data.variants
-      : data.sku
-        ? [{ sku: data.sku, name: "Default" as string | null, barcode: data.barcode ?? null, priceOverride: null as number | null, comparePrice: data.comparePrice ?? null, costPrice: data.costPrice ?? null, imageUrl: data.images[0] ?? null, status: "active" as const, trackInventory: data.trackInventory, optionValues: [] as string[] }]
+    const inputVariants = filledVariants.length > 0
+      ? filledVariants
+      : effectiveSku
+        ? [{ sku: effectiveSku, name: "Default" as string | null, barcode: data.barcode ?? null, priceOverride: null as number | null, comparePrice: data.comparePrice ?? null, costPrice: data.costPrice ?? null, imageUrl: data.images[0] ?? null, status: "active" as const, trackInventory: data.trackInventory, optionValues: [] as string[] }]
         : [];
     const existingVariants = await tx
       .select()
@@ -624,7 +652,7 @@ export async function updateProductKeepVariants(id: string, input: unknown) {
         slug,
         shortDescription: data.shortDescription ?? existing.shortDescription,
         description: data.description ?? existing.description,
-        sku: data.sku ?? existing.sku,
+        sku: data.sku && data.sku.trim() !== "" ? data.sku : existing.sku,
         barcode: data.barcode ?? existing.barcode,
         brandId: data.brandId ?? existing.brandId,
         categoryId: data.categoryId ?? existing.categoryId,
@@ -646,10 +674,16 @@ export async function updateProductKeepVariants(id: string, input: unknown) {
       .where(eq(products.id, id))
       .returning();
 
-    const inputVariants = data.variants.length > 0
-      ? data.variants
-      : data.sku
-        ? [{ sku: data.sku, name: "Default" as string | null, barcode: data.barcode ?? null, priceOverride: null as number | null, comparePrice: data.comparePrice ?? null, costPrice: data.costPrice ?? null, imageUrl: null, status: "active" as const, trackInventory: data.trackInventory, optionValues: [] as string[] }]
+    const effectiveKeepSku = data.sku && data.sku.trim() !== "" ? data.sku : existing.sku;
+    const filledKeepVariants = await fillVariantSkus(
+      tx,
+      data.categoryId ?? existing.categoryId ?? null,
+      data.variants
+    );
+    const inputVariants = filledKeepVariants.length > 0
+      ? filledKeepVariants
+      : effectiveKeepSku
+        ? [{ sku: effectiveKeepSku, name: "Default" as string | null, barcode: data.barcode ?? null, priceOverride: null as number | null, comparePrice: data.comparePrice ?? null, costPrice: data.costPrice ?? null, imageUrl: null, status: "active" as const, trackInventory: data.trackInventory, optionValues: [] as string[] }]
         : [];
     const existingVariants = await tx
       .select()

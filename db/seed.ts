@@ -43,6 +43,12 @@ import {
   settings,
 } from "./schema";
 import { eq } from "drizzle-orm";
+import { buildSku, formatSkuDate } from "../lib/sku";
+
+// Deterministic seed SKUs (MMDDYYYY-PAD-NNNN) so reseeds stay idempotent —
+// the same SKUs generate on every run instead of drifting with today's date.
+const SEED_DATE = formatSkuDate(new Date("2026-06-15T12:00:00+08:00"));
+const seedSku = (pad: string, n: number) => buildSku(SEED_DATE, pad, n);
 
 export async function seed() {
   // 1. Roles (spec names)
@@ -147,8 +153,8 @@ export async function seed() {
     const [grip40] = await db.insert(productAttributeValues).values({ attributeId: gripAttr.id, value: '4"' }).returning();
     const [grip425] = await db.insert(productAttributeValues).values({ attributeId: gripAttr.id, value: '4.25"' }).returning();
     const variantDefs = [
-      { sku: "PADDLE-VOLT-400", name: '4"', values: [grip40.id], price: null as number | null, stock: 100 },
-      { sku: "PADDLE-VOLT-425", name: '4.25"', values: [grip425.id], price: 569900, stock: 50 },
+      { sku: seedSku("PRO", 1), name: '4"', values: [grip40.id], price: null as number | null, stock: 100 },
+      { sku: seedSku("PRO", 2), name: '4.25"', values: [grip425.id], price: 569900, stock: 50 },
     ];
     for (const v of variantDefs) {
       const [variant] = await db.insert(productVariants).values({ productId, sku: v.sku, name: v.name, priceOverride: v.price }).returning();
@@ -254,19 +260,19 @@ export async function seed() {
     variants?: { sku: string; name: string; price?: number | null; cost?: number | null; stock: number; values: string[] }[];
   };
   const seedProducts: SeedProduct[] = [
-    { name: "Surge Fiberglass Paddle", slug: "surge-fiberglass-paddle", sku: "PADDLE-SURGE-400", short: "Lightweight fiberglass paddle", desc: "Lightweight fiberglass paddle with a comfort grip", brand: "pickle-unltd", category: "paddles", base: 349900, compare: 419900, cost: 180000, status: "active", featured: true, threshold: 10, weightG: 230 },
-    { name: "Tour Outdoor Balls 3-Pack", slug: "tour-outdoor-balls-3pk", sku: "BALL-TOUR-OUT-3PK", short: "Tournament outdoor balls", desc: "Tournament-grade 40-hole outdoor pickleballs, 3-pack", brand: "carbon-edge", category: "balls", base: 59900, compare: 74900, cost: 25000, status: "active", weightG: 300, threshold: 5 },
-    { name: "Dry-Fit Court Tee", slug: "dry-fit-court-tee", sku: "APPAREL-TEE-M", short: "Sweat-wicking court tee", desc: "Sweat-wicking dry-fit tee for long court sessions", brand: "court-thread", category: "apparel", base: 129900, status: "active", featured: true, weightG: 180 },
-    { name: "Court Performance Shorts", slug: "court-performance-shorts", sku: "APPAREL-SHORTS-M", short: "Classic court shorts", desc: "Lightweight performance shorts with ball pockets", brand: "court-thread", category: "apparel", base: 139900, cost: 60000, status: "active", weightG: 220 },
+    { name: "Surge Fiberglass Paddle", slug: "surge-fiberglass-paddle", sku: seedSku("PAD", 1), short: "Lightweight fiberglass paddle", desc: "Lightweight fiberglass paddle with a comfort grip", brand: "pickle-unltd", category: "paddles", base: 349900, compare: 419900, cost: 180000, status: "active", featured: true, threshold: 10, weightG: 230 },
+    { name: "Tour Outdoor Balls 3-Pack", slug: "tour-outdoor-balls-3pk", sku: seedSku("BAL", 1), short: "Tournament outdoor balls", desc: "Tournament-grade 40-hole outdoor pickleballs, 3-pack", brand: "carbon-edge", category: "balls", base: 59900, compare: 74900, cost: 25000, status: "active", weightG: 300, threshold: 5 },
+    { name: "Dry-Fit Court Tee", slug: "dry-fit-court-tee", sku: seedSku("APP", 1), short: "Sweat-wicking court tee", desc: "Sweat-wicking dry-fit tee for long court sessions", brand: "court-thread", category: "apparel", base: 129900, status: "active", featured: true, weightG: 180 },
+    { name: "Court Performance Shorts", slug: "court-performance-shorts", sku: seedSku("APP", 2), short: "Classic court shorts", desc: "Lightweight performance shorts with ball pockets", brand: "court-thread", category: "apparel", base: 139900, cost: 60000, status: "active", weightG: 220 },
     {
       name: "Control Touch Pro Paddle", slug: "control-touch-pro-paddle", short: "Control paddle with spin texture", desc: "Carbon-face control paddle with spin texture",
       brand: "carbon-edge", category: "pro-paddles", base: 499900, compare: 579900, cost: 250000,
       status: "active", featured: true, weightG: 235,
       attributes: [{ name: "Grip", values: ['4"', '4.25"'] }, { name: "Weight", values: ["Light", "Standard"] }],
       variants: [
-        { sku: "PADDLE-CTRL-LT-400", name: 'Light / 4"', price: null, cost: 250000, stock: 40, values: ["Light", '4"'] },
-        { sku: "PADDLE-CTRL-STD-400", name: 'Standard / 4"', price: null, cost: 250000, stock: 35, values: ["Standard", '4"'] },
-        { sku: "PADDLE-CTRL-STD-425", name: 'Standard / 4.25"', price: 519900, cost: 260000, stock: 20, values: ["Standard", '4.25"'] },
+        { sku: seedSku("PRO", 3), name: 'Light / 4"', price: null, cost: 250000, stock: 40, values: ["Light", '4"'] },
+        { sku: seedSku("PRO", 4), name: 'Standard / 4"', price: null, cost: 250000, stock: 35, values: ["Standard", '4"'] },
+        { sku: seedSku("PRO", 5), name: 'Standard / 4.25"', price: 519900, cost: 260000, stock: 20, values: ["Standard", '4.25"'] },
       ],
     },
     {
@@ -275,20 +281,20 @@ export async function seed() {
       status: "active", weightG: 240,
       attributes: [{ name: "Grip", values: ['4"', '4.25"'] }],
       variants: [
-        { sku: "PADDLE-RALLY-400", name: '4"', price: null, cost: 120000, stock: 30, values: ['4"'] },
-        { sku: "PADDLE-RALLY-425", name: '4.25"', price: 259900, cost: 125000, stock: 18, values: ['4.25"'] },
+        { sku: seedSku("PAD", 2), name: '4"', price: null, cost: 120000, stock: 30, values: ['4"'] },
+        { sku: seedSku("PAD", 3), name: '4.25"', price: 259900, cost: 125000, stock: 18, values: ['4.25"'] },
       ],
     },
-    { name: "Sideline Court Cap", slug: "sideline-court-cap", sku: "APPAREL-CAP-OS", short: "Breathable court cap", desc: "Breathable one-size court cap", brand: "court-thread", category: "accessories", base: 89900, cost: 35000, status: "inactive", weightG: 100 },
-    { name: "Tour Outdoor Balls 6-Pack", slug: "tour-outdoor-balls-6pk", sku: "BALL-TOUR-OUT-6PK", short: "Outdoor balls value pack", desc: "Tournament-grade outdoor pickleballs, value 6-pack", brand: "carbon-edge", category: "balls", base: 99900, compare: 119900, cost: 45000, status: "active", threshold: 5, weightG: 550 },
+    { name: "Sideline Court Cap", slug: "sideline-court-cap", sku: seedSku("ACC", 1), short: "Breathable court cap", desc: "Breathable one-size court cap", brand: "court-thread", category: "accessories", base: 89900, cost: 35000, status: "inactive", weightG: 100 },
+    { name: "Tour Outdoor Balls 6-Pack", slug: "tour-outdoor-balls-6pk", sku: seedSku("BAL", 2), short: "Outdoor balls value pack", desc: "Tournament-grade outdoor pickleballs, value 6-pack", brand: "carbon-edge", category: "balls", base: 99900, compare: 119900, cost: 45000, status: "active", threshold: 5, weightG: 550 },
     {
       name: "Court Cushion Socks 3-Pack", slug: "court-cushion-socks-3pk", short: "Cushioned court socks", desc: "Cushioned ankle socks for quick lateral moves",
       brand: "court-thread", category: "accessories", base: 79900, cost: 30000,
       status: "draft", weightG: 150,
       attributes: [{ name: "Size", values: ["M", "L"] }],
       variants: [
-        { sku: "APPAREL-SOCKS-M", name: "M", price: null, cost: 30000, stock: 25, values: ["M"] },
-        { sku: "APPAREL-SOCKS-L", name: "L", price: null, cost: 30000, stock: 25, values: ["L"] },
+        { sku: seedSku("ACC", 2), name: "M", price: null, cost: 30000, stock: 25, values: ["M"] },
+        { sku: seedSku("ACC", 3), name: "L", price: null, cost: 30000, stock: 25, values: ["L"] },
       ],
     },
   ];
@@ -366,7 +372,7 @@ export async function seed() {
     await db.insert(promotionProducts).values({ promotionId: line20.id, productId }).onConflictDoNothing();
 
     // Buy 2 Get 1 on the seed ball variant (stackable line promo).
-    const demoVar = (await db.select().from(productVariants).where(eq(productVariants.sku, "BALL-TOUR-OUT-3PK")).limit(1))[0];
+    const demoVar = (await db.select().from(productVariants).where(eq(productVariants.sku, seedSku("BAL", 1))).limit(1))[0];
     if (demoVar) {
       const [bogo] = await db
         .insert(promotions)
@@ -445,7 +451,7 @@ export async function seed() {
         activatedAt: new Date(),
       }).onConflictDoNothing();
     }
-    const demoVariant = (await db.select().from(productVariants).where(eq(productVariants.sku, "BALL-TOUR-OUT-3PK")).limit(1))[0];
+    const demoVariant = (await db.select().from(productVariants).where(eq(productVariants.sku, seedSku("BAL", 1))).limit(1))[0];
     if (demoVariant) {
       await db.insert(memberPrices).values({
         tierId: goldTier.id,

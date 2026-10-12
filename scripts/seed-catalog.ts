@@ -20,9 +20,22 @@ import {
   inventoryMovements,
 } from "../db/schema";
 import { eq, and } from "drizzle-orm";
+import { buildSku, formatSkuDate } from "../lib/sku";
 
 if (process.env.NODE_ENV === "production" && process.env.CONFIRM_CATALOG_SEED !== "yes") {
   throw new Error("Refusing to seed in production without CONFIRM_CATALOG_SEED=yes");
+}
+
+// Deterministic MMDDYYYY-PAD-NNNN SKUs: evaluation order is fixed, so every
+// run generates the same SKUs and the slug/SKU pre-checks stay idempotent.
+const SEED_DATE = formatSkuDate(new Date("2026-06-15T12:00:00+08:00"));
+const seqByGroup = new Map<string, number>();
+function seedSku(categorySlug: string): string {
+  const pad = categorySlug.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3).padEnd(3, "X");
+  const key = `${SEED_DATE}-${pad}`;
+  const n = (seqByGroup.get(key) ?? 0) + 1;
+  seqByGroup.set(key, n);
+  return buildSku(SEED_DATE, pad, n);
 }
 
 // ------------------------------------------------------------------ types ---
@@ -66,8 +79,8 @@ const CATALOG: ProductDef[] = [
     threshold: 5, weightG: 240,
     attributes: [{ name: "Grip", values: ['4"', '4.25"'] }],
     variants: [
-      { sku: "PADDLE-RALLY-400", name: '4"', cost: 120000, stock: 30, values: ['4"'] },
-      { sku: "PADDLE-RALLY-425", name: '4.25"', cost: 125000, stock: 18, values: ['4.25"'] },
+      { sku: seedSku("paddles"), name: '4"', cost: 120000, stock: 30, values: ['4"'] },
+      { sku: seedSku("paddles"), name: '4.25"', cost: 125000, stock: 18, values: ['4.25"'] },
     ],
   },
   {
@@ -77,8 +90,8 @@ const CATALOG: ProductDef[] = [
     featured: true, threshold: 5, weightG: 230,
     attributes: [{ name: "Grip", values: ['4"', '4.25"'] }],
     variants: [
-      { sku: "PADDLE-SURGE-400", name: '4"', cost: 180000, stock: 30, values: ['4"'] },
-      { sku: "PADDLE-SURGE-425", name: '4.25"', cost: 185000, stock: 18, values: ['4.25"'] },
+      { sku: seedSku("paddles"), name: '4"', cost: 180000, stock: 30, values: ['4"'] },
+      { sku: seedSku("paddles"), name: '4.25"', cost: 185000, stock: 18, values: ['4.25"'] },
     ],
   },
   {
@@ -91,9 +104,9 @@ const CATALOG: ProductDef[] = [
       { name: "Weight", values: ["Light", "Standard"] },
     ],
     variants: [
-      { sku: "PADDLE-CTRL-LT-400", name: 'Light / 4"', cost: 250000, stock: 40, values: ["Light", '4"'] },
-      { sku: "PADDLE-CTRL-STD-400", name: 'Standard / 4"', cost: 250000, stock: 35, values: ["Standard", '4"'] },
-      { sku: "PADDLE-CTRL-STD-425", name: 'Standard / 4.25"', price: 519900, cost: 260000, stock: 20, values: ["Standard", '4.25"'] },
+      { sku: seedSku("paddles"), name: 'Light / 4"', cost: 250000, stock: 40, values: ["Light", '4"'] },
+      { sku: seedSku("paddles"), name: 'Standard / 4"', cost: 250000, stock: 35, values: ["Standard", '4"'] },
+      { sku: seedSku("paddles"), name: 'Standard / 4.25"', price: 519900, cost: 260000, stock: 20, values: ["Standard", '4.25"'] },
     ],
   },
   {
@@ -103,8 +116,8 @@ const CATALOG: ProductDef[] = [
     threshold: 5, weightG: 235,
     attributes: [{ name: "Grip", values: ['4"', '4.25"'] }],
     variants: [
-      { sku: "PADDLE-VOLT-400", name: '4"', cost: 280000, stock: 25, values: ['4"'] },
-      { sku: "PADDLE-VOLT-425", name: '4.25"', cost: 290000, stock: 15, values: ['4.25"'] },
+      { sku: seedSku("paddles"), name: '4"', cost: 280000, stock: 25, values: ['4"'] },
+      { sku: seedSku("paddles"), name: '4.25"', cost: 290000, stock: 15, values: ['4.25"'] },
     ],
   },
   // ------------------------------------------------------ Accessories ---
@@ -112,25 +125,25 @@ const CATALOG: ProductDef[] = [
     name: "Tour Outdoor Balls 3-Pack", slug: "tour-outdoor-balls-3pk",
     short: "Tournament outdoor balls", desc: "Tournament-grade 40-hole outdoor pickleballs, 3-pack",
     brand: "carbon-edge", category: "accessories", base: 59900, cost: 25000,
-    threshold: 10, weightG: 300, sku: "BALL-TOUR-OUT-3PK", stock: 100,
+    threshold: 10, weightG: 300, sku: seedSku("accessories"), stock: 100,
   },
   {
     name: "Tour Outdoor Balls 6-Pack", slug: "tour-outdoor-balls-6pk",
     short: "Outdoor balls value pack", desc: "Tournament-grade outdoor pickleballs, value 6-pack",
     brand: "carbon-edge", category: "accessories", base: 99900, compare: 119900, cost: 45000,
-    threshold: 10, weightG: 550, sku: "BALL-TOUR-OUT-6PK", stock: 60,
+    threshold: 10, weightG: 550, sku: seedSku("accessories"), stock: 60,
   },
   {
     name: "Tack Overgrip 3-Pack", slug: "tack-overgrip-3pk",
     short: "Sweat-absorbent overgrips", desc: "Tacky sweat-absorbent overgrips, 3-pack",
     brand: "court-thread", category: "accessories", base: 34900, cost: 12000,
-    threshold: 5, weightG: 50, sku: "ACC-GRIP-3PK", stock: 80,
+    threshold: 5, weightG: 50, sku: seedSku("accessories"), stock: 80,
   },
   {
     name: "Sideline Court Cap", slug: "sideline-court-cap",
     short: "Breathable court cap", desc: "Breathable one-size court cap",
     brand: "court-thread", category: "accessories", base: 89900, cost: 35000,
-    threshold: 5, weightG: 100, sku: "ACC-CAP-OS", stock: 40,
+    threshold: 5, weightG: 100, sku: seedSku("accessories"), stock: 40,
   },
   // ------------------------------------------------------ Court shoes ---
   {
@@ -140,7 +153,7 @@ const CATALOG: ProductDef[] = [
     threshold: 10, weightG: 350,
     attributes: [{ name: "Size", values: ["US 7", "US 8", "US 9", "US 10", "US 11"] }],
     variants: ["US 7", "US 8", "US 9", "US 10", "US 11"].map((s) => ({
-      sku: `SHOE-RALLY-LITE-${s.slice(3).padStart(2, "0")}`,
+      sku: seedSku("court-shoes"),
       name: s, cost: 170000, stock: 15, values: [s],
     })),
   },
@@ -151,7 +164,7 @@ const CATALOG: ProductDef[] = [
     featured: true, threshold: 10, weightG: 360,
     attributes: [{ name: "Size", values: ["US 7", "US 8", "US 9", "US 10", "US 11"] }],
     variants: ["US 7", "US 8", "US 9", "US 10", "US 11"].map((s) => ({
-      sku: `SHOE-ACE-${s.slice(3).padStart(2, "0")}`,
+      sku: seedSku("court-shoes"),
       name: s, cost: 220000, stock: 15, values: [s],
     })),
   },
@@ -162,7 +175,7 @@ const CATALOG: ProductDef[] = [
     threshold: 5, weightG: 370,
     attributes: [{ name: "Size", values: ["US 8", "US 9", "US 10"] }],
     variants: ["US 8", "US 9", "US 10"].map((s) => ({
-      sku: `SHOE-ELITE-${s.slice(3).padStart(2, "0")}`,
+      sku: seedSku("court-shoes"),
       name: s, cost: 310000, stock: 10, values: [s],
     })),
   },
@@ -171,19 +184,19 @@ const CATALOG: ProductDef[] = [
     name: "Tour Sling Paddle Bag", slug: "tour-sling-paddle-bag",
     short: "Single-paddle sling bag", desc: "Crossbody sling bag for one paddle, balls, and valuables",
     brand: "court-thread", category: "bags", base: 189900, cost: 80000,
-    threshold: 5, weightG: 600, sku: "BAG-TOUR-SLING", stock: 30,
+    threshold: 5, weightG: 600, sku: seedSku("bags"), stock: 30,
   },
   {
     name: "Court Backpack 2-Paddle", slug: "court-backpack-2-paddle",
     short: "Two-paddle court backpack", desc: "Ventilated backpack with padded two-paddle compartment and shoe garage",
     brand: "court-thread", category: "bags", base: 229900, cost: 100000,
-    threshold: 5, weightG: 800, sku: "BAG-COURT-BP", stock: 25,
+    threshold: 5, weightG: 800, sku: seedSku("bags"), stock: 25,
   },
   {
     name: "Pro Duffel 6-Paddle Bag", slug: "pro-duffel-6-paddle-bag",
     short: "Team-size duffel bag", desc: "Team-size duffel with six-paddle vault, cooler pocket, and locker loop",
     brand: "court-thread", category: "bags", base: 299900, compare: 349900, cost: 140000,
-    threshold: 5, weightG: 1200, sku: "BAG-PRO-DUFFEL", stock: 20,
+    threshold: 5, weightG: 1200, sku: seedSku("bags"), stock: 20,
   },
   // ------------------------------------------------------------ Apparel ---
   {
@@ -193,7 +206,7 @@ const CATALOG: ProductDef[] = [
     threshold: 5, weightG: 180,
     attributes: [{ name: "Size", values: ["S", "M", "L", "XL"] }],
     variants: ["S", "M", "L", "XL"].map((s) => ({
-      sku: `APP-TEE-${s}`, name: s, cost: 55000, stock: 20, values: [s],
+      sku: seedSku("apparel"), name: s, cost: 55000, stock: 20, values: [s],
     })),
   },
   {
@@ -203,7 +216,7 @@ const CATALOG: ProductDef[] = [
     threshold: 5, weightG: 220,
     attributes: [{ name: "Size", values: ["S", "M", "L", "XL"] }],
     variants: ["S", "M", "L", "XL"].map((s) => ({
-      sku: `APP-SHORTS-${s}`, name: s, cost: 60000, stock: 15, values: [s],
+      sku: seedSku("apparel"), name: s, cost: 60000, stock: 15, values: [s],
     })),
   },
   {
@@ -213,7 +226,7 @@ const CATALOG: ProductDef[] = [
     threshold: 5, weightG: 200,
     attributes: [{ name: "Size", values: ["S", "M", "L", "XL"] }],
     variants: ["S", "M", "L", "XL"].map((s) => ({
-      sku: `APP-POLO-${s}`, name: s, cost: 70000, stock: 15, values: [s],
+      sku: seedSku("apparel"), name: s, cost: 70000, stock: 15, values: [s],
     })),
   },
   {
@@ -223,7 +236,7 @@ const CATALOG: ProductDef[] = [
     threshold: 5, weightG: 190,
     attributes: [{ name: "Size", values: ["S", "M", "L"] }],
     variants: ["S", "M", "L"].map((s) => ({
-      sku: `APP-SKORT-${s}`, name: s, cost: 65000, stock: 15, values: [s],
+      sku: seedSku("apparel"), name: s, cost: 65000, stock: 15, values: [s],
     })),
   },
 ];

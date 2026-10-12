@@ -159,7 +159,8 @@ export function ProductForm({
             values: a.values.split(",").map((s) => s.trim()).filter(Boolean),
           })),
         variants: variants
-          .filter((v) => v.sku.trim() !== "")
+          // Keep rows with any content — blank SKUs auto-generate on save.
+          .filter((v) => v.sku.trim() !== "" || v.name.trim() !== "" || v.optionValues.trim() !== "")
           .map((v) => ({
             sku: v.sku.trim(),
             name: v.name.trim() || null,
@@ -192,7 +193,7 @@ export function ProductForm({
         <div className={grid2}>
           <label className={field}>Name *<Input value={name} onChange={(e) => setName(e.target.value)} required /></label>
           <label className={field}>Slug (auto if blank)<Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="auto-generated" /></label>
-          <label className={field}>SKU (required if no variants)<Input value={sku} onChange={(e) => setSku(e.target.value)} /></label>
+          <label className={field}>SKU (auto if blank)<Input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="MMDDYYYY-PAD-0001" /></label>
           <label className={field}>Barcode<Input value={barcode} onChange={(e) => setBarcode(e.target.value)} /></label>
           <label className={field}>Brand
             <select value={brandId} onChange={(e) => setBrandId(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm font-normal">
@@ -273,7 +274,7 @@ export function ProductForm({
         {variants.map((v, i) => (
           <div key={i} className="mb-3 rounded border p-3">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              <label className={field}>SKU *<Input value={v.sku} onChange={(e) => setVariant(i, { sku: e.target.value })} /></label>
+              <label className={field}>SKU (blank = auto)<Input value={v.sku} onChange={(e) => setVariant(i, { sku: e.target.value })} placeholder="MMDDYYYY-PAD-0001" /></label>
               <label className={field}>Display name<Input value={v.name} onChange={(e) => setVariant(i, { name: e.target.value })} placeholder="Red / M" /></label>
               <label className={field}>Barcode<Input value={v.barcode} onChange={(e) => setVariant(i, { barcode: e.target.value })} /></label>
               <label className={field}>Price override (₱)<Input value={v.price} onChange={(e) => setVariant(i, { price: e.target.value })} inputMode="decimal" placeholder="blank = base" /></label>
@@ -295,7 +296,7 @@ export function ProductForm({
             <Button type="button" variant="utilityDanger" className="mt-2" onClick={() => setVariants((rows) => rows.filter((_, k) => k !== i))}>Remove variant</Button>
           </div>
         ))}
-        {variants.length === 0 && <p className="text-sm text-gray-500">No variants — product-level SKU is then required.</p>}
+        {variants.length === 0 && <p className="text-sm text-gray-500">No variants — a default variant is created and all blank SKUs auto-generate.</p>}
       </Card>
 
       {optionWarnings.length > 0 && (

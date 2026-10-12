@@ -1,4 +1,9 @@
 import { z } from "zod";
+import { SKU_REGEX } from "@/lib/sku";
+
+// SKU policy: MMDDYYYY-PAD-NNNN (e.g. 10062026-PAD-0001).
+// Blank variant SKUs are allowed — the server auto-generates them on create.
+// Non-blank SKUs must already be in the new format.
 
 export const phAddressSchema = z.object({
   label: z.string().min(1).max(100),
@@ -292,7 +297,13 @@ export const catalogAttributeSchema = z.object({
 });
 
 export const catalogVariantSchema = z.object({
-  sku: z.string().min(1).max(64),
+  // Blank = auto-generate on create (MMDDYYYY-PAD-NNNN).
+  sku: z
+    .string()
+    .max(64)
+    .refine((s) => s === "" || SKU_REGEX.test(s.trim()), {
+      message: "SKU must be blank (auto-generated) or MMDDYYYY-PAD-0001 format",
+    }),
   name: z.string().max(160).nullable().optional(),
   barcode: z.string().max(64).nullable().optional(),
   priceOverride: z.number().int().min(0).nullable().optional(),
@@ -309,7 +320,15 @@ export const productSchema = z
   .object({
     name: z.string().min(1).max(200),
     slug: z.string().min(1).max(160).optional(),
-    sku: z.string().min(1).max(64).nullable().optional(),
+    // Null/blank = auto-generate on create (MMDDYYYY-PAD-NNNN).
+    sku: z
+      .string()
+      .max(64)
+      .nullable()
+      .optional()
+      .refine((s) => s == null || s === "" || SKU_REGEX.test(s.trim()), {
+        message: "SKU must be blank (auto-generated) or MMDDYYYY-PAD-0001 format",
+      }),
     barcode: z.string().max(64).nullable().optional(),
     shortDescription: z.string().max(500).nullable().optional(),
     description: z.string().max(10000).nullable().optional(),
@@ -341,14 +360,11 @@ export const productSchema = z
         message: "Compare-at price must exceed base price",
       });
     }
-    if (data.variants.length === 0 && !data.sku) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["sku"],
-        message: "SKU is required when product has no variants",
-      });
-    }
-    const skus = data.variants.map((v) => v.sku);
+    // NOTE: no "SKU required when no variants" check — the server
+    // auto-generates MMDDYYYY-PAD-NNNN SKUs on create.
+    // Blank variant SKUs are filled by the server, so only non-blank
+    // SKUs participate in uniqueness checks.
+    const skus = data.variants.map((v) => v.sku).filter((s) => s !== "");
     if (new Set(skus).size !== skus.length) {
       ctx.addIssue({
         code: "custom",

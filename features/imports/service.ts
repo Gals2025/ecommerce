@@ -7,6 +7,7 @@ import {
   productStatusSchema,
   type ProductInput,
 } from "@/validators";
+import { isSkuFormatted } from "@/lib/sku";
 import { pesosToCentavos } from "@/lib/money";
 
 export const IMPORT_ROW_LIMIT = 1000;
@@ -286,11 +287,19 @@ export function validateGroup(
   let totalStock = 0;
   group.rows.forEach((r, i) => {
     const label = group.rows.length > 1 ? `row ${group.rowIndexes[i]} ` : "";
-    const sku = r.variantSku || (group.rows.length === 1 ? r.productSku : "");
-    if (!sku) {
-      errors.push(`• ${label}variantSku: SKU is required`);
+    const rawSku = (r.variantSku || (group.rows.length === 1 ? r.productSku : "")).trim();
+    if (!rawSku) {
+      // New mode: blank = auto-generate MMDDYYYY-PAD-NNNN on confirm.
+      // Update mode: a SKU is required to locate the existing product.
+      if (mode === "update") {
+        errors.push(`• ${label}variantSku: SKU is required to match an existing product`);
+        return;
+      }
+    } else if (!isSkuFormatted(rawSku)) {
+      errors.push(`• ${label}variantSku: Must be MMDDYYYY-PAD-0001 format (or blank to auto-generate)`);
       return;
     }
+    const sku = rawSku;
     const price = parseMoney(r.variantPrice ?? "");
     if (r.variantPrice && price === "invalid") {
       errors.push(`• ${label}variantPrice: Invalid peso amount`);
@@ -322,9 +331,9 @@ export function validateGroup(
     } as ProductInput["variants"][number] & { _stock: number });
   });
 
-  const productSku = first.productSku || "";
-  if (mode === "new" && group.rows.length === 1 && !first.variantSku && !productSku) {
-    errors.push("• productSku: SKU is required when product has no variants");
+  const productSku = (first.productSku || "").trim();
+  if (productSku && !isSkuFormatted(productSku)) {
+    errors.push("• productSku: Must be MMDDYYYY-PAD-0001 format (or blank to auto-generate)");
   }
 
   let input: ProductInput | null = null;
@@ -385,6 +394,22 @@ export function groupStock(group: ImportGroup): Map<string, number> {
   const map = new Map<string, number>();
   group.rows.forEach((r) => {
     const sku = r.variantSku || r.productSku;
+    if (!sku) return;
+    const s = parseStock(r.stock ?? "");
+    map.set(sku, typeof s === "number" ? s : 0);
+  });
+  return map;
+}
+
+/**
+ * Positional stock map for post-fill SKUs: zips group rows with the final
+ * (possibly auto-generated) variant SKU list in order. Use after blank SKUs
+ * have been allocated, so receipt quantities land on the created variants.
+ */
+export function groupStockForSkus(group: ImportGroup, skus: string[]): Map<string, number> {
+  const map = new Map<string, number>();
+  group.rows.forEach((r, i) => {
+    const sku = skus[i];
     if (!sku) return;
     const s = parseStock(r.stock ?? "");
     map.set(sku, typeof s === "number" ? s : 0);
