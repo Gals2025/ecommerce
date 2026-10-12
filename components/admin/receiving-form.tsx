@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input, Button, Card } from "@/components/ui";
+import { VariantPicker } from "./variant-picker";
 import { receiveStockAction } from "@/actions/inventory";
 
 export type StockOption = { id: string; sku: string; productName: string };
@@ -47,12 +48,9 @@ export function ReceivingForm({ variants, locations }: { variants: StockOption[]
     <Card>
       <h2 className="mb-3 font-semibold">Receive stock</h2>
       <form onSubmit={onSubmit} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className={field}>Variant *
-          <select value={variantId} onChange={(e) => setVariantId(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm font-normal" required>
-            <option value="">— Select —</option>
-            {variants.map((v) => <option key={v.id} value={v.id}>{v.productName} — {v.sku}</option>)}
-          </select>
-        </label>
+        <div className={field}>Variant *
+          <VariantPicker variants={variants} value={variantId} onChange={setVariantId} />
+        </div>
         <label className={field}>Location *
           <select value={locationId} onChange={(e) => setLocationId(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm font-normal" required>
             <option value="">— Select —</option>
