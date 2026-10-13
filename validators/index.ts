@@ -372,13 +372,12 @@ export const productSchema = z
         message: "Variant SKUs must be unique",
       });
     }
-    if (data.sku && skus.includes(data.sku)) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["sku"],
-        message: "Product SKU must not duplicate a variant SKU",
-      });
-    }
+    // NOTE: no "product SKU vs variant SKU" clash check — simple products
+    // intentionally share one SKU between the product row and their auto
+    // "Default" variant (see createProduct's effectiveVariants and
+    // updateProduct's effectiveSku fallback). updateProduct matches variants
+    // by SKU and treats the shared value coherently, so forbidding it here
+    // would brick every edit of a simple product (React #441 on save).
     // Option-link integrity: near-duplicates (case/whitespace-only differences)
     // and variant values with no exact declared match silently break
     // storefront resolution (dead "Select options" button), so fail fast here.
