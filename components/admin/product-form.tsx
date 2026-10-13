@@ -130,7 +130,15 @@ export function ProductForm({
       if (!name.trim()) throw new Error("Product name is required");
       const bp = pesosToCentavos(basePrice);
       if (bp == null) throw new Error("Base price is required");
-      const num = (s: string) => (s.trim() === "" ? null : Number(s.trim()));
+      const num = (s: string) => {
+        const t = s.trim();
+        if (t === "") return null;
+        const n = Number(t);
+        // Never send NaN across the server-action boundary: it fails Zod
+        // server-side with a cryptic message and risks RSC serialization issues.
+        if (!Number.isFinite(n)) throw new Error(`Invalid number: ${s}`);
+        return n;
+      };
       const data: ProductInput = {
         name: name.trim(),
         slug: slug.trim() || undefined,

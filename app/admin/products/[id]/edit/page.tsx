@@ -10,7 +10,7 @@ import {
   productVariants,
   variantAttributeValues,
 } from "@/db/schema";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { PageHeader } from "@/components/admin/page-header";
 import { PageGuard } from "@/components/admin/page-guard";
 import { ProductForm } from "@/components/admin/product-form";
@@ -30,23 +30,38 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   }
   if (!product) notFound();
 
-  const [images, attrs, attrValues, variants, brandOpts, catOpts] = await Promise.all([
+  const [images, attrs, variants, brandOpts, catOpts] = await Promise.all([
     db.select().from(productImages).where(eq(productImages.productId, id)),
     db.select().from(productAttributes).where(eq(productAttributes.productId, id)),
-    db.select().from(productAttributeValues),
     db.select().from(productVariants).where(eq(productVariants.productId, id)),
     db.select({ id: brands.id, name: brands.name }).from(brands).orderBy(asc(brands.name)),
     db.select({ id: categories.id, name: categories.name }).from(categories).orderBy(asc(categories.name)),
-  ]).catch(() => [null, null, null, null, null, null] as const);
-  if (!images || !attrs || !attrValues || !variants || !brandOpts || !catOpts) {
+  ]).catch(() => [null, null, null, null, null] as const);
+  if (!images || !attrs || !variants || !brandOpts || !catOpts) {
     return <DbUnreachable />;
   }
 
-  const links = await db
-    .select({ variantId: variantAttributeValues.variantId, value: productAttributeValues.value })
-    .from(variantAttributeValues)
-    .innerJoin(productAttributeValues, eq(variantAttributeValues.attributeValueId, productAttributeValues.id))
-    .catch(() => []);
+  // Scoped follow-ups (unscoped full-table fetches grow with the whole
+  // catalog and can time out on serverless — React #441).
+  const editAttrIds = attrs.map((a) => a.id);
+  const editVariantIds = variants.map((v) => v.id);
+  const [attrValues, links] = await Promise.all([
+    editAttrIds.length > 0
+      ? db
+          .select()
+          .from(productAttributeValues)
+          .where(inArray(productAttributeValues.attributeId, editAttrIds))
+          .catch(() => [])
+      : Promise.resolve([]),
+    editVariantIds.length > 0
+      ? db
+          .select({ variantId: variantAttributeValues.variantId, value: productAttributeValues.value })
+          .from(variantAttributeValues)
+          .innerJoin(productAttributeValues, eq(variantAttributeValues.attributeValueId, productAttributeValues.id))
+          .where(inArray(variantAttributeValues.variantId, editVariantIds))
+          .catch(() => [])
+      : Promise.resolve([] as { variantId: string; value: string }[]),
+  ]);
   const valuesByVariant = new Map<string, string[]>();
   for (const l of links ?? []) {
     const arr = valuesByVariant.get(l.variantId) ?? [];

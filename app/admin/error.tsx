@@ -24,6 +24,11 @@ export default function Error({
         <Button variant="secondary" onClick={() => reset()}>Try again</Button>
         <Link href="/admin" className={cn(buttonVariants({ variant: "outline" }))}>Dashboard</Link>
       </div>
+      {error?.digest && (
+        <p className="mt-4 font-mono text-xs text-gray-400">
+          Error digest: {error.digest} — include this when reporting, and match it in Vercel → Logs.
+        </p>
+      )}
     </div>
   );
 }

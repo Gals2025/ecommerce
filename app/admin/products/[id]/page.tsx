@@ -37,7 +37,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   }
   if (!product) notFound();
 
-  const [brand, category, images, attrs, attrValues, variants, logs] = await Promise.all([
+  const [brand, category, images, attrs, variants, logs] = await Promise.all([
     product.brandId
       ? db.select().from(brands).where(eq(brands.id, product.brandId)).limit(1).then((r) => r[0] ?? null)
       : Promise.resolve(null),
@@ -46,10 +46,20 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       : Promise.resolve(null),
     db.select().from(productImages).where(eq(productImages.productId, id)).catch(() => []),
     db.select().from(productAttributes).where(eq(productAttributes.productId, id)).catch(() => []),
-    db.select().from(productAttributeValues).catch(() => []),
     db.select().from(productVariants).where(eq(productVariants.productId, id)).catch(() => []),
     db.select().from(auditLogs).where(and(eq(auditLogs.entity, "products"), eq(auditLogs.entityId, id))).orderBy(desc(auditLogs.createdAt)).limit(20).catch(() => []),
   ]);
+
+  // Scoped to this product's attributes (an unscoped full-table fetch grows
+  // with the whole catalog and can time out on serverless — React #441).
+  const attrIds = (attrs ?? []).map((a) => a.id);
+  const attrValues = attrIds.length > 0
+    ? await db
+        .select()
+        .from(productAttributeValues)
+        .where(inArray(productAttributeValues.attributeId, attrIds))
+        .catch(() => [])
+    : [];
 
   const balances = await db
     .select({ variantId: inventoryBalances.variantId, onHand: inventoryBalances.onHand, reserved: inventoryBalances.reserved, location: inventoryLocations.code })

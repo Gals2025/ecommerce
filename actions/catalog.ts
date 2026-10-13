@@ -419,7 +419,11 @@ export async function createProduct(input: unknown) {
 export async function updateProduct(id: string, input: unknown) {
   const session = await requireAdmin();
   const data = parseProductInput(input);
-  return db.transaction(async (tx) => {
+  // Same SKU-race retry as createProduct: auto-allocated variant SKUs read
+  // max+1, so concurrent edits can collide with a unique-violation; the tx
+  // is side-effect-free until commit, so a bounded retry is safe.
+  return withSkuRetry(() =>
+    db.transaction(async (tx) => {
     const existing = (await tx.select().from(products).where(eq(products.id, id)).limit(1))[0];
     if (!existing) throw new Error("Product not found");
 
@@ -582,12 +586,16 @@ export async function updateProduct(id: string, input: unknown) {
     }
     const valueIdByName = buildValueMap(attributeRows, data.attributes, valueRows);
     const variantBySku = new Map(inputVariants.map((v) => [v.sku, v]));
-    const persisted = await tx
-      .select({ id: productVariants.id, sku: productVariants.sku })
-      .from(productVariants)
-      .where(
-        and(eq(productVariants.productId, id), inArray(productVariants.sku, [...inputSkus]))
-      );
+    // Guard: Drizzle generates invalid `IN ()` SQL for an empty list (e.g.
+    // simple product with no SKU at all) — skip the lookup instead of throwing.
+    const persisted = inputSkus.size > 0
+      ? await tx
+          .select({ id: productVariants.id, sku: productVariants.sku })
+          .from(productVariants)
+          .where(
+            and(eq(productVariants.productId, id), inArray(productVariants.sku, [...inputSkus]))
+          )
+      : [];
     for (const pv of persisted) {
       const v = variantBySku.get(pv.sku);
       if (!v) continue;
@@ -626,7 +634,8 @@ export async function updateProduct(id: string, input: unknown) {
     revalidatePath("/admin/products");
     revalidatePath(`/admin/products/${id}`);
     return p.id;
-  });
+    })
+  );
 }
 
 export async function updateProductKeepVariants(id: string, input: unknown) {
