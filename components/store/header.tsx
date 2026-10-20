@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Search, ShoppingBag, User } from "lucide-react";
 import { getSession } from "@/lib/rbac";
 import { getCartLines } from "@/lib/cart";
+import { version } from "@/package.json";
 
 export type StoreNavCategory = { id: string; name: string; slug: string };
 
@@ -152,6 +153,7 @@ export function StoreFooter({ categories = [] }: { categories?: StoreNavCategory
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-stone-500">
           <span>© {new Date().getFullYear()} Pickle Unltd. All rights reserved.</span>
+          <span>Version {version}</span>
           <span className="font-medium tracking-wide">Gear up. Own the court.</span>
         </div>
       </div>
