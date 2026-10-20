@@ -18,6 +18,7 @@ import { ProductCard } from "./product-card";
 import { FlashCountdown } from "./flash-countdown";
 import { cn } from "@/lib/cn";
 import { buttonVariants } from "@/components/ui";
+import { cardIsVisible, type CardSlot, type HomeCard } from "@/features/catalog/homepage-cards";
 
 /* ---------------------------------- Hero ---------------------------------- */
 
@@ -174,56 +175,68 @@ export type SplitPromo = {
   endAt: Date | null;
 };
 
-export function PromoSplit({ promos }: { promos: SplitPromo[] }) {
-  const flash = promos.find((p) => p.kind === "percent" || p.kind === "fixed") ?? promos[0] ?? null;
+export function PromoSplit({ promos, cards }: { promos: SplitPromo[]; cards: Record<CardSlot, HomeCard> }) {
+  const flashCard = cards.flash_sale;
+  const newCard = cards.new_arrivals;
+  const flash = flashCard.promotionId
+    ? promos.find((p) => p.id === flashCard.promotionId) ?? null
+    : promos.find((p) => p.kind === "percent" || p.kind === "fixed") ?? null;
+  const activeFlash = flash && (flash.kind === "percent" || flash.kind === "fixed") ? flash : null;
+  const visibleFlash = cardIsVisible(flashCard);
+  const visibleNew = cardIsVisible(newCard);
+  if (!visibleFlash && !visibleNew) return null;
+  const theme = (value: string) => value === "forest" ? "bg-gradient-to-br from-emerald-950 to-emerald-600 text-white"
+    : value === "dark" ? "bg-stone-950 text-white"
+    : value === "light" ? "border border-stone-200/80 bg-white text-stone-900"
+    : "bg-gradient-to-br from-red-700 via-red-600 to-amber-600 text-white";
   return (
-    <section className="mt-10 grid gap-3 lg:grid-cols-2">
+    <section className={`mt-10 grid gap-3 ${visibleFlash && visibleNew ? "lg:grid-cols-2" : ""}`}>
       {/* Flash sale */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-red-700 via-red-600 to-amber-600 p-6 text-white shadow-soft sm:p-7">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white/90">
-          <Zap className="h-4 w-4" /> Flash sale
+      {visibleFlash && <div className={`relative overflow-hidden rounded-3xl p-6 shadow-soft sm:p-7 ${theme(flashCard.theme)}`}>
+        <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] opacity-90">
+          <Zap className="h-4 w-4" /> {flashCard.eyebrow}
         </div>
-        {flash ? (
+        {activeFlash ? (
           <>
             <p className="mt-2 font-display text-3xl font-semibold leading-none sm:text-4xl">
-              Up to {flash.kind === "percent" ? `${flash.value ?? 0}%` : `₱${(((flash.value ?? 0) as number) / 100).toFixed(0)}`} off
+              Up to {activeFlash.kind === "percent" ? `${activeFlash.value ?? 0}%` : `₱${((activeFlash.value ?? 0) / 100).toFixed(0)}`} off
             </p>
-            <p className="mt-1.5 max-w-xs text-sm text-white/85">{flash.name}{flash.description ? ` — ${flash.description}` : ""}</p>
+            <p className="mt-1.5 max-w-xs text-sm opacity-85">{flashCard.description}</p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <Link href="/promotions" className="inline-flex min-h-[44px] items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50">
-                Shop the deals
+              <Link href={flashCard.buttonHref} className={`inline-flex min-h-[44px] items-center rounded-full px-4 py-2 text-sm font-semibold transition ${flashCard.theme === "light" ? "bg-emerald-700 text-white hover:bg-emerald-800" : "bg-white text-red-700 hover:bg-red-50"}`}>
+                {flashCard.buttonText}
               </Link>
-              {flash.endAt ? <FlashCountdown endAt={flash.endAt} /> : <span className="text-xs font-medium uppercase tracking-wider text-white/80">Limited time</span>}
+              {activeFlash.endAt ? <FlashCountdown endAt={activeFlash.endAt} /> : <span className="text-xs font-medium uppercase tracking-wider opacity-80">Limited time</span>}
             </div>
           </>
         ) : (
           <>
-            <p className="mt-2 font-display text-3xl font-semibold leading-tight sm:text-4xl">Deals up to 50% off</p>
-            <p className="mt-1.5 text-sm text-white/85">Member prices, bundle deals and event promos.</p>
+            <p className="mt-2 font-display text-3xl font-semibold leading-tight sm:text-4xl">{flashCard.promotionId ? "Discover the latest deals" : flashCard.headline}</p>
+            <p className="mt-1.5 text-sm opacity-85">{flashCard.description}</p>
             <div className="mt-4">
-              <Link href="/promotions" className="inline-flex min-h-[44px] items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50">
-                Shop the deals
+              <Link href={flashCard.buttonHref} className={`inline-flex min-h-[44px] items-center rounded-full px-4 py-2 text-sm font-semibold transition ${flashCard.theme === "light" ? "bg-emerald-700 text-white hover:bg-emerald-800" : "bg-white text-red-700 hover:bg-red-50"}`}>
+                {flashCard.buttonText}
               </Link>
             </div>
           </>
         )}
-      </div>
+      </div>}
       {/* New arrivals */}
-      <div className="relative overflow-hidden rounded-3xl border border-stone-200/80 bg-white p-6 shadow-soft sm:p-7">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-700">
-          <Sparkles className="h-4 w-4" /> New arrivals
+      {visibleNew && <div className={`relative overflow-hidden rounded-3xl p-6 shadow-soft sm:p-7 ${theme(newCard.theme)}`}>
+        <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] opacity-80">
+          <Sparkles className="h-4 w-4" /> {newCard.eyebrow}
         </div>
-        <p className="mt-2 font-display text-3xl font-semibold leading-tight text-stone-900 sm:text-4xl">Fresh gear, just landed</p>
-        <p className="mt-1.5 max-w-xs text-sm text-stone-500">The latest paddles, balls and apparel in the shop.</p>
+        <p className="mt-2 font-display text-3xl font-semibold leading-tight sm:text-4xl">{newCard.headline}</p>
+        <p className="mt-1.5 max-w-xs text-sm opacity-70">{newCard.description}</p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Link href="/shop?sort=newest" className={cn(buttonVariants({ variant: "primary" }))}>
-            Shop new <ArrowRight className="h-4 w-4" />
+          <Link href={newCard.buttonHref} className={cn(buttonVariants({ variant: "primary" }))}>
+            {newCard.buttonText} <ArrowRight className="h-4 w-4" />
           </Link>
-          <span className="flex items-center gap-1 text-xs font-medium text-stone-400">
-            <Trophy className="h-3.5 w-3.5" /> Tournament-grade picks
-          </span>
+          {newCard.asideText && <span className="flex items-center gap-1 text-xs font-medium opacity-60">
+            <Trophy className="h-3.5 w-3.5" /> {newCard.asideText}
+          </span>}
         </div>
-      </div>
+      </div>}
     </section>
   );
 }
