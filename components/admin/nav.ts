@@ -60,6 +60,7 @@ export const ADMIN_NAV: NavSection[] = [
     permissions: ["promotions.manage"],
     items: [
       { label: "Promotions", href: "/admin/promotions" },
+      { label: "Homepage Cards", href: "/admin/homepage-cards" },
       { label: "Promo Codes", href: "/admin/promo-codes" },
     ],
   },

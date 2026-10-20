@@ -6,3 +6,4 @@ export * from "./promos";
 export * from "./commerce";
 export * from "./ops";
 export * from "./relations";
+export * from "./homepage";
