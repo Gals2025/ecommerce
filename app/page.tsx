@@ -2,11 +2,13 @@ import {
   getActivePromos,
   getBestSellers,
   getCategoriesTree,
+  getHomeNewArrivals,
   getMemberDiscountPct,
   getMembershipTiers,
   getVisibleProducts,
 } from "@/features/catalog/storefront";
 import { getSession } from "@/lib/rbac";
+import { getPublishedHomepageCards } from "@/features/catalog/homepage-cards";
 import { StoreFooter, StoreHeader } from "@/components/store/header";
 import {
   CategoryRail,
@@ -24,10 +26,11 @@ export default async function Home() {
   const categories = await getCategoriesTree().catch(() => []);
   const featured = await getVisibleProducts({ sort: "newest" }, 100, 0).catch(() => ({ items: [], total: 0 }));
   const featuredItems = featured.items.filter((i) => i.featured).slice(0, 10);
-  const newArrivals = featured.items.slice(0, 10);
+  const newArrivals = await getHomeNewArrivals(10).catch(() => []);
   let bestSellers = await getBestSellers(10).catch(() => []);
   if (bestSellers.length === 0) bestSellers = featuredItems.map((i) => ({ ...i, unitsSold: 0 }));
   const promos = await getActivePromos().catch(() => []);
+  const homepageCards = await getPublishedHomepageCards();
   const tiers = await getMembershipTiers().catch(() => []);
   const topTier = tiers.length > 0 ? tiers[tiers.length - 1] : null;
 
@@ -53,7 +56,8 @@ export default async function Home() {
         />
 
         <PromoSplit
-          promos={promos.slice(0, 4).map((p) => ({
+          cards={homepageCards}
+          promos={promos.map((p) => ({
             id: p.id,
             name: p.name,
             description: p.description,
