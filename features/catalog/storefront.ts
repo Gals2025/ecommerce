@@ -15,6 +15,7 @@ import {
   variantAttributeValues,
 } from "@/db/schema";
 import { and, asc, desc, eq, gte, ilike, inArray, lte, or, sql, type SQL } from "drizzle-orm";
+import { getNewArrivalCategoryGroups } from "./new-arrivals";
 
 // NOTE: cost fields (costPrice) are NEVER selected here — they must not leak
 // into customer-facing payloads.
@@ -49,8 +50,13 @@ export type ShopFilter = {
   sort?: "newest" | "price" | "price_desc" | "name" | "bestselling";
 };
 
-export async function getVisibleProducts(filter: ShopFilter = {}, limit = 24, offset = 0) {
+export async function getVisibleProducts(filter: ShopFilter = {}, limit = 24, offset = 0, categoryGroups?: string[][]) {
   const conds: SQL[] = [eq(products.status, "active")];
+  if (categoryGroups) {
+    const ids = categoryGroups.flat();
+    if (ids.length === 0) return { items: [], total: 0 };
+    conds.push(inArray(products.categoryId, ids));
+  }
   if (filter.q) {
     const like = `%${filter.q}%`;
     conds.push(or(ilike(products.name, like), ilike(products.shortDescription, like))!);
@@ -74,6 +80,13 @@ export async function getVisibleProducts(filter: ShopFilter = {}, limit = 24, of
     : filter.sort === "price_desc" ? desc(products.basePrice)
     : filter.sort === "name" ? asc(products.name)
     : desc(products.createdAt);
+
+  // Homepage-only grouping is applied before LIMIT, across the full catalog.
+  const categoryOrder = categoryGroups
+    ? sql`case ${sql.join(categoryGroups.flatMap((ids, rank) =>
+        ids.length ? [sql`when ${inArray(products.categoryId, ids)} then ${rank}::int`] : []
+      ), sql` `)} else 4 end`
+    : null;
 
   // Bestselling sort is applied in-memory after sales aggregation (see below).
   const rows = await db
@@ -100,7 +113,7 @@ export async function getVisibleProducts(filter: ShopFilter = {}, limit = 24, of
     .leftJoin(inventoryBalances, eq(inventoryBalances.variantId, productVariants.id))
     .where(where)
     .groupBy(products.id, brands.name, categories.name)
-    .orderBy(orderBy)
+    .orderBy(...(categoryOrder ? [categoryOrder, desc(products.createdAt), asc(products.id)] : [orderBy]))
     .limit(filter.sort === "bestselling" ? 100 : limit)
     .offset(filter.sort === "bestselling" ? 0 : offset);
 
@@ -149,6 +162,16 @@ export async function getVisibleProducts(filter: ShopFilter = {}, limit = 24, of
     total = all.filter((r) => Number(r.available ?? 0) > 0).length;
   }
   return { items, total };
+}
+
+export async function getHomeNewArrivals(limit = 10) {
+  const allCategories = await db
+    .select({ id: categories.id, name: categories.name, slug: categories.slug, parentId: categories.parentId })
+    .from(categories)
+    .where(eq(categories.isActive, true));
+  const groups = getNewArrivalCategoryGroups(allCategories);
+  const { items } = await getVisibleProducts({ sort: "newest" }, limit, 0, groups);
+  return items;
 }
 
 async function getUnitsSold(productIds: Set<string>): Promise<Map<string, number>> {

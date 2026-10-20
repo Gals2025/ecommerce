@@ -2,6 +2,7 @@ import {
   getActivePromos,
   getBestSellers,
   getCategoriesTree,
+  getHomeNewArrivals,
   getMemberDiscountPct,
   getMembershipTiers,
   getVisibleProducts,
@@ -24,7 +25,7 @@ export default async function Home() {
   const categories = await getCategoriesTree().catch(() => []);
   const featured = await getVisibleProducts({ sort: "newest" }, 100, 0).catch(() => ({ items: [], total: 0 }));
   const featuredItems = featured.items.filter((i) => i.featured).slice(0, 10);
-  const newArrivals = featured.items.slice(0, 10);
+  const newArrivals = await getHomeNewArrivals(10).catch(() => []);
   let bestSellers = await getBestSellers(10).catch(() => []);
   if (bestSellers.length === 0) bestSellers = featuredItems.map((i) => ({ ...i, unitsSold: 0 }));
   const promos = await getActivePromos().catch(() => []);
