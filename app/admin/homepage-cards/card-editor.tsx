@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { saveHomepageCard } from "@/actions/homepage-cards";
+import { publishHomepageCard, saveHomepageCardDraft } from "@/actions/homepage-cards";
 import type { HomeCard } from "@/features/catalog/homepage-cards";
 
 type Offer = { id: string; name: string; kind: string; value: number; isActive: boolean; startAt: Date | null; endAt: Date | null };
@@ -16,13 +16,20 @@ const dateInput = (date: Date | null) => {
 };
 
 export function CardEditor({ card, offers }: { card: HomeCard; offers: Offer[] }) {
-  const [saveStatus, setSaveStatus] = useState<"idle" | "unsaved" | "saving" | "saved" | "error">("idle");
+  const draft = card.draft;
+  const [saveStatus, setSaveStatus] = useState<"idle" | "unsaved" | "saving" | "draftSaved" | "publishing" | "published" | "error">(draft ? "draftSaved" : "idle");
+  const [hasDraft, setHasDraft] = useState(Boolean(draft));
+  const [publishedVisible, setPublishedVisible] = useState(card.isVisible);
   const [form, setForm] = useState({
-    eyebrow: card.eyebrow, headline: card.headline, description: card.description,
-    buttonText: card.buttonText, buttonHref: card.buttonHref, theme: card.theme, asideText: card.asideText,
+    eyebrow: draft?.eyebrow ?? card.eyebrow, headline: draft?.headline ?? card.headline,
+    description: draft?.description ?? card.description, buttonText: draft?.buttonText ?? card.buttonText,
+    buttonHref: draft?.buttonHref ?? card.buttonHref, theme: draft?.theme ?? card.theme,
+    asideText: draft?.asideText ?? card.asideText,
   });
-  const [promotionId, setPromotionId] = useState(card.promotionId ?? "");
-  const [visible, setVisible] = useState(card.isVisible);
+  const [promotionId, setPromotionId] = useState(draft?.promotionId ?? card.promotionId ?? "");
+  const [visible, setVisible] = useState(draft?.isVisible ?? card.isVisible);
+  const [startAt, setStartAt] = useState(draft ? dateInput(draft.startAt ? new Date(draft.startAt) : null) : dateInput(card.startAt));
+  const [endAt, setEndAt] = useState(draft ? dateInput(draft.endAt ? new Date(draft.endAt) : null) : dateInput(card.endAt));
   const update = (key: keyof typeof form, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
   const flash = card.slot === "flash_sale";
   const linked = offers.find((p) => p.id === promotionId);
@@ -36,14 +43,15 @@ export function CardEditor({ card, offers }: { card: HomeCard; offers: Offer[] }
     : form.theme === "dark" ? "bg-stone-950 text-white" : "border border-stone-200 bg-white text-stone-900";
   return <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
     <h2 className="font-display text-xl font-semibold">{flash ? "Flash Sale" : "New Arrivals"}</h2>
-    <p className="mt-1 text-sm text-stone-500">{flash ? "Left card" : "Right card"} on the storefront homepage.</p>
+    <p className="mt-1 text-sm text-stone-500">{flash ? "Left card" : "Right card"} on the storefront homepage. Live card: {publishedVisible ? "shown" : "hidden"}.</p>
     <div className="mt-4 grid gap-6 lg:grid-cols-2">
       <form
         action={async (formData) => {
           setSaveStatus("saving");
           try {
-            await saveHomepageCard(formData);
-            setSaveStatus("saved");
+            await saveHomepageCardDraft(formData);
+            setHasDraft(true);
+            setSaveStatus("draftSaved");
           } catch {
             setSaveStatus("error");
           }
@@ -75,19 +83,35 @@ export function CardEditor({ card, offers }: { card: HomeCard; offers: Offer[] }
           </select>
           <span className="font-normal text-stone-500">A linked active offer supplies the discount headline and countdown. Otherwise your headline appears.</span>
         </label>}
-        <label className="flex items-center gap-2"><input type="checkbox" name="isVisible" checked={visible} onChange={(e) => setVisible(e.target.checked)} /> Show card</label>
+        <label className="flex items-center gap-2"><input type="checkbox" name="isVisible" checked={visible} onChange={(e) => setVisible(e.target.checked)} /> Show card when published</label>
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="grid gap-1">Show from (Manila time)<input type="datetime-local" name="startAt" defaultValue={dateInput(card.startAt)} className="rounded-lg border px-3 py-2" /></label>
-          <label className="grid gap-1">Show until (Manila time)<input type="datetime-local" name="endAt" defaultValue={dateInput(card.endAt)} className="rounded-lg border px-3 py-2" /></label>
+          <label className="grid gap-1">Show from (Manila time)<input type="datetime-local" name="startAt" value={startAt} onChange={(e) => setStartAt(e.target.value)} className="rounded-lg border px-3 py-2" /></label>
+          <label className="grid gap-1">Show until (Manila time)<input type="datetime-local" name="endAt" value={endAt} onChange={(e) => setEndAt(e.target.value)} className="rounded-lg border px-3 py-2" /></label>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button type="submit" disabled={saveStatus === "saving"} className="rounded-full bg-emerald-700 px-5 py-2.5 font-semibold text-white hover:bg-emerald-800 disabled:cursor-wait disabled:opacity-60">
-            {saveStatus === "saving" ? "Saving…" : "Save changes"}
+          <button type="submit" disabled={saveStatus === "saving" || saveStatus === "publishing"} className="rounded-full border border-emerald-700 px-5 py-2.5 font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-wait disabled:opacity-60">
+            {saveStatus === "saving" ? "Saving…" : "Save draft"}
+          </button>
+          <button type="button" disabled={!hasDraft || saveStatus !== "draftSaved"}
+            onClick={async () => {
+              setSaveStatus("publishing");
+              try {
+                await publishHomepageCard(card.slot as "flash_sale" | "new_arrivals");
+                setHasDraft(false);
+                setPublishedVisible(visible);
+                setSaveStatus("published");
+              } catch {
+                setSaveStatus("error");
+              }
+            }}
+            className="rounded-full bg-emerald-700 px-5 py-2.5 font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50">
+            {saveStatus === "publishing" ? "Publishing…" : "Publish card"}
           </button>
           <p aria-live="polite" className={`text-sm ${saveStatus === "error" ? "text-red-700" : "text-stone-600"}`}>
-            {saveStatus === "saved" ? "Card settings saved." :
-              saveStatus === "error" ? "Could not save. Check the fields and try again." :
-              saveStatus === "unsaved" ? "Unsaved changes" : ""}
+            {saveStatus === "draftSaved" ? "Draft saved. The storefront has not changed." :
+              saveStatus === "published" ? "Published. The storefront now uses these settings." :
+              saveStatus === "error" ? "Action failed. Check the fields and try again." :
+              saveStatus === "unsaved" ? "Unsaved changes. Save the draft before publishing." : ""}
           </p>
         </div>
       </form>

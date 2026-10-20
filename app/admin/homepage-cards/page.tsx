@@ -18,18 +18,34 @@ function missingCardTable(error: unknown): boolean {
   return false;
 }
 
+function missingDraftColumn(error: unknown): boolean {
+  let current = error;
+  for (let depth = 0; depth < 5 && current && typeof current === "object"; depth++) {
+    const details = current as { code?: string; message?: string; cause?: unknown };
+    if (details.code === "42703" || /column ["']?draft["']? does not exist/i.test(details.message ?? "")) return true;
+    current = details.cause;
+  }
+  return false;
+}
+
 export default async function HomepageCardsAdmin() {
   let cards: Awaited<ReturnType<typeof getHomepageCards>>;
   let offers: { id: string; name: string; kind: string; value: number; isActive: boolean; startAt: Date | null; endAt: Date | null }[];
   try {
     // Surface a missing migration in Admin while the public page uses defaults.
-    await db.select({ slot: homepageCards.slot }).from(homepageCards).limit(1);
+    await db.select({ draft: homepageCards.draft }).from(homepageCards).limit(1);
     [cards, offers] = await Promise.all([
       getHomepageCards(),
       db.select({ id: promotions.id, name: promotions.name, kind: promotions.kind, value: promotions.value,
         isActive: promotions.isActive, startAt: promotions.startAt, endAt: promotions.endAt }).from(promotions),
     ]);
   } catch (error) {
+    if (missingDraftColumn(error)) return <PageGuard permission="promotions.manage" page="/admin/homepage-cards">
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-950">
+        <h1 className="font-display text-xl font-semibold">Draft storage needs a database update</h1>
+        <p className="mt-2">Apply <code>db/migrations/0015_homepage_card_drafts.sql</code> to the staging Neon database, then refresh this page.</p>
+      </div>
+    </PageGuard>;
     if (missingCardTable(error)) return <PageGuard permission="promotions.manage" page="/admin/homepage-cards">
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-950">
         <h1 className="font-display text-xl font-semibold">Homepage Cards needs its database table</h1>
@@ -41,7 +57,7 @@ export default async function HomepageCardsAdmin() {
   }
   return <PageGuard permission="promotions.manage" page="/admin/homepage-cards">
     <div className="space-y-6">
-      <PageHeader title="Homepage Cards" description="Edit the two promotional cards shown between Featured products and Best sellers. Preview and save each card separately." />
+      <PageHeader title="Homepage Cards" description="Save each card as a draft, then publish it when you want the storefront to change." />
       <CardEditor card={cards.flash_sale} offers={offers.filter((p) => p.isActive && ["percent", "fixed"].includes(p.kind))} />
       <CardEditor card={cards.new_arrivals} offers={[]} />
     </div>
