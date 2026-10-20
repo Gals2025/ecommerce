@@ -1,12 +1,12 @@
 "use server";
 
 import { db } from "@/db";
-import { homepageCards, promotions } from "@/db/schema";
+import { homepageCards, promotions, type HomepageCardDraft } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { audit } from "@/lib/audit";
 import { getStrictAdminSession, hasPermission } from "@/lib/rbac";
-import type { CardSlot } from "@/features/catalog/homepage-cards";
+import { CARD_DEFAULTS, type CardSlot } from "@/features/catalog/homepage-cards";
 
 const slots: CardSlot[] = ["flash_sale", "new_arrivals"];
 const themes = ["sunset", "forest", "light", "dark"];
@@ -24,10 +24,14 @@ const manilaDate = (value: FormDataEntryValue | null) => {
   return date;
 };
 
-export async function saveHomepageCard(data: FormData) {
+async function requireCardEditor() {
   const session = await getStrictAdminSession();
   if (!session?.user || !(await hasPermission(session.user.id, "promotions.manage"))) throw new Error("Forbidden");
+  return session;
+}
 
+export async function saveHomepageCardDraft(data: FormData) {
+  const session = await requireCardEditor();
   const slot = String(data.get("slot")) as CardSlot;
   if (!slots.includes(slot)) throw new Error("Invalid card.");
   const theme = field(data, "theme", 16);
@@ -45,17 +49,36 @@ export async function saveHomepageCard(data: FormData) {
     if (!linked) throw new Error("Promotion not found.");
   }
 
-  const values = {
+  const draft: HomepageCardDraft = {
     eyebrow: field(data, "eyebrow", 40), headline: field(data, "headline", 100),
     description: field(data, "description", 240), buttonText: field(data, "buttonText", 40),
     asideText: String(data.get("asideText") ?? "").trim().slice(0, 60),
-    buttonHref, theme, promotionId, startAt, endAt,
-    isVisible: data.get("isVisible") === "on", updatedAt: new Date(),
+    buttonHref, theme, promotionId,
+    startAt: startAt?.toISOString() ?? null, endAt: endAt?.toISOString() ?? null,
+    isVisible: data.get("isVisible") === "on",
   };
-  await db.insert(homepageCards).values({ slot, ...values }).onConflictDoUpdate({
-    target: homepageCards.slot, set: values,
+  await db.insert(homepageCards).values({ ...CARD_DEFAULTS[slot], draft, draftUpdatedAt: new Date() }).onConflictDoUpdate({
+    target: homepageCards.slot, set: { draft, draftUpdatedAt: new Date() },
   });
-  await audit(session.user.id, "homepage_card.update", "homepage_cards", slot, values);
+  await audit(session.user.id, "homepage_card.draft_save", "homepage_cards", slot, draft);
+  revalidatePath("/admin/homepage-cards");
+}
+
+export async function publishHomepageCard(slot: CardSlot) {
+  const session = await requireCardEditor();
+  if (!slots.includes(slot)) throw new Error("Invalid card.");
+  const [card] = await db.select().from(homepageCards).where(eq(homepageCards.slot, slot)).limit(1);
+  if (!card?.draft) throw new Error("Save a draft before publishing.");
+  const draft = card.draft;
+  await db.update(homepageCards).set({
+    eyebrow: draft.eyebrow, headline: draft.headline, description: draft.description,
+    asideText: draft.asideText, buttonText: draft.buttonText, buttonHref: draft.buttonHref,
+    theme: draft.theme, isVisible: draft.isVisible, promotionId: draft.promotionId,
+    startAt: draft.startAt ? new Date(draft.startAt) : null,
+    endAt: draft.endAt ? new Date(draft.endAt) : null,
+    draft: null, draftUpdatedAt: null, updatedAt: new Date(),
+  }).where(eq(homepageCards.slot, slot));
+  await audit(session.user.id, "homepage_card.publish", "homepage_cards", slot, draft);
   revalidatePath("/");
   revalidatePath("/admin/homepage-cards");
 }

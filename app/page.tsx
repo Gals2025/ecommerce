@@ -8,7 +8,7 @@ import {
   getVisibleProducts,
 } from "@/features/catalog/storefront";
 import { getSession } from "@/lib/rbac";
-import { getHomepageCards } from "@/features/catalog/homepage-cards";
+import { getPublishedHomepageCards } from "@/features/catalog/homepage-cards";
 import { StoreFooter, StoreHeader } from "@/components/store/header";
 import {
   CategoryRail,
@@ -30,7 +30,7 @@ export default async function Home() {
   let bestSellers = await getBestSellers(10).catch(() => []);
   if (bestSellers.length === 0) bestSellers = featuredItems.map((i) => ({ ...i, unitsSold: 0 }));
   const promos = await getActivePromos().catch(() => []);
-  const homepageCards = await getHomepageCards();
+  const homepageCards = await getPublishedHomepageCards();
   const tiers = await getMembershipTiers().catch(() => []);
   const topTier = tiers.length > 0 ? tiers[tiers.length - 1] : null;
 
