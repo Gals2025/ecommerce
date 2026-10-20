@@ -41,7 +41,7 @@ export default async function HomepageCardsAdmin() {
   }
   return <PageGuard permission="promotions.manage" page="/admin/homepage-cards">
     <div className="space-y-6">
-      <PageHeader title="Homepage Cards" description="Edit the two promotional cards shown between Featured products and Best sellers. Preview changes before publishing." />
+      <PageHeader title="Homepage Cards" description="Edit the two promotional cards shown between Featured products and Best sellers. Preview and save each card separately." />
       <CardEditor card={cards.flash_sale} offers={offers.filter((p) => p.isActive && ["percent", "fixed"].includes(p.kind))} />
       <CardEditor card={cards.new_arrivals} offers={[]} />
     </div>

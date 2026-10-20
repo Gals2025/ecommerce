@@ -16,6 +16,7 @@ const dateInput = (date: Date | null) => {
 };
 
 export function CardEditor({ card, offers }: { card: HomeCard; offers: Offer[] }) {
+  const [saveStatus, setSaveStatus] = useState<"idle" | "unsaved" | "saving" | "saved" | "error">("idle");
   const [form, setForm] = useState({
     eyebrow: card.eyebrow, headline: card.headline, description: card.description,
     buttonText: card.buttonText, buttonHref: card.buttonHref, theme: card.theme, asideText: card.asideText,
@@ -37,7 +38,19 @@ export function CardEditor({ card, offers }: { card: HomeCard; offers: Offer[] }
     <h2 className="font-display text-xl font-semibold">{flash ? "Flash Sale" : "New Arrivals"}</h2>
     <p className="mt-1 text-sm text-stone-500">{flash ? "Left card" : "Right card"} on the storefront homepage.</p>
     <div className="mt-4 grid gap-6 lg:grid-cols-2">
-      <form action={saveHomepageCard} className="grid gap-3 text-sm">
+      <form
+        action={async (formData) => {
+          setSaveStatus("saving");
+          try {
+            await saveHomepageCard(formData);
+            setSaveStatus("saved");
+          } catch {
+            setSaveStatus("error");
+          }
+        }}
+        onChange={() => setSaveStatus("unsaved")}
+        className="grid gap-3 text-sm"
+      >
         <input type="hidden" name="slot" value={card.slot} />
         {([ ["eyebrow", "Small label", 40], ["headline", "Headline", 100], ["description", "Description", 240],
           ["buttonText", "Button text", 40], ["buttonHref", "Button destination (internal path)", 250] ] as const).map(([key, label, max]) =>
@@ -67,7 +80,16 @@ export function CardEditor({ card, offers }: { card: HomeCard; offers: Offer[] }
           <label className="grid gap-1">Show from (Manila time)<input type="datetime-local" name="startAt" defaultValue={dateInput(card.startAt)} className="rounded-lg border px-3 py-2" /></label>
           <label className="grid gap-1">Show until (Manila time)<input type="datetime-local" name="endAt" defaultValue={dateInput(card.endAt)} className="rounded-lg border px-3 py-2" /></label>
         </div>
-        <button type="submit" className="w-fit rounded-full bg-emerald-700 px-5 py-2.5 font-semibold text-white hover:bg-emerald-800">Publish card</button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="submit" disabled={saveStatus === "saving"} className="rounded-full bg-emerald-700 px-5 py-2.5 font-semibold text-white hover:bg-emerald-800 disabled:cursor-wait disabled:opacity-60">
+            {saveStatus === "saving" ? "Saving…" : "Save changes"}
+          </button>
+          <p aria-live="polite" className={`text-sm ${saveStatus === "error" ? "text-red-700" : "text-stone-600"}`}>
+            {saveStatus === "saved" ? "Card settings saved." :
+              saveStatus === "error" ? "Could not save. Check the fields and try again." :
+              saveStatus === "unsaved" ? "Unsaved changes" : ""}
+          </p>
+        </div>
       </form>
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-stone-500">Preview {visible ? "" : "(hidden on storefront)"}</p>
