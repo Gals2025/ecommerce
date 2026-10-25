@@ -26,9 +26,9 @@ export function DataTable<T extends { id: string | number }>({
   const sorted = [...rows].sort((a, b) => {
     if (!sortKey) return 0;
     const col = columns.find((c) => c.key === sortKey);
-    if (!col?.value) return 0;
-    const va = col.value(a);
-    const vb = col.value(b);
+    if (!col) return 0;
+    const va = col.value ? col.value(a) : String((a as Record<string, unknown>)[col.key] ?? "");
+    const vb = col.value ? col.value(b) : String((b as Record<string, unknown>)[col.key] ?? "");
     return (va < vb ? -1 : va > vb ? 1 : 0) * dir;
   });
   if (rows.length === 0) {
@@ -71,7 +71,7 @@ export function DataTable<T extends { id: string | number }>({
             <tr key={r.id} className="border-t">
               {columns.map((c) => (
                 <td key={c.key} className="px-3 py-2">
-                  {c.render ? c.render(r) : c.value ? String(c.value(r)) : null}
+                  {c.render ? c.render(r) : c.value ? String(c.value(r)) : c.key === "total" && typeof (r as Record<string, unknown>)[c.key] === "number" ? `₱${(Number((r as Record<string, unknown>)[c.key]) / 100).toLocaleString("en-PH", { minimumFractionDigits: 2 })}` : String((r as Record<string, unknown>)[c.key] ?? "")}
                 </td>
               ))}
             </tr>
