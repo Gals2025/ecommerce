@@ -88,11 +88,16 @@ export default async function AdminDashboard() {
       <h2 className="mb-2 mt-6 font-medium">Recent orders</h2>
       <DataTable
         columns={[
-          { key: "no", header: "Order", value: (r) => r.orderNo, sortable: true },
-          { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
-          { key: "total", header: "Total", value: (r) => r.grandTotal, render: (r) => formatPHP(r.grandTotal), sortable: true },
+          { key: "no", header: "Order", sortable: true },
+          { key: "status", header: "Status" },
+          { key: "total", header: "Total", sortable: true },
         ]}
-        rows={data.recentOrders}
+        rows={data.recentOrders.map((r) => ({
+          id: r.id,
+          no: r.orderNo,
+          status: r.status,
+          total: r.grandTotal,
+        }))}
         emptyTitle="No orders yet"
         emptyDescription="Orders will appear here once customers check out."
       />
