@@ -61,6 +61,7 @@ export const ADMIN_NAV: NavSection[] = [
     items: [
       { label: "Promotions", href: "/admin/promotions" },
       { label: "Homepage Cards", href: "/admin/homepage-cards" },
+      { label: "Open Plays", href: "/admin/open-plays" },
       { label: "Promo Codes", href: "/admin/promo-codes" },
     ],
   },

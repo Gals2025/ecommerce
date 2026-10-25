@@ -4,16 +4,16 @@ import {
   getCategoriesTree,
   getHomeNewArrivals,
   getMemberDiscountPct,
-  getMembershipTiers,
   getVisibleProducts,
 } from "@/features/catalog/storefront";
+import { OpenPlaysShowcase } from "@/components/store/open-plays";
+import { readShowcase, defaults } from "@/features/open-plays";
 import { getSession } from "@/lib/rbac";
 import { getPublishedHomepageCards } from "@/features/catalog/homepage-cards";
 import { StoreFooter, StoreHeader } from "@/components/store/header";
 import {
   CategoryRail,
   Hero,
-  MembershipBanner,
   ProductRow,
   PromoSplit,
 } from "@/components/store/home-sections";
@@ -31,8 +31,7 @@ export default async function Home() {
   if (bestSellers.length === 0) bestSellers = featuredItems.map((i) => ({ ...i, unitsSold: 0 }));
   const promos = await getActivePromos().catch(() => []);
   const homepageCards = await getPublishedHomepageCards();
-  const tiers = await getMembershipTiers().catch(() => []);
-  const topTier = tiers.length > 0 ? tiers[tiers.length - 1] : null;
+  const openPlays = await readShowcase().then(r => r.published).catch(() => defaults);
 
   const navCats = categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }));
   const paddleCat = categories.find((c) => `${c.slug} ${c.name}`.toLowerCase().includes("paddle")) ?? null;
@@ -86,10 +85,7 @@ export default async function Home() {
           memberPct={memberPct}
         />
 
-        <MembershipBanner
-          tiers={tiers.slice(0, 4).map((t) => ({ id: t.id, name: t.name, discountPct: t.discountPct }))}
-          topDiscount={topTier?.discountPct ?? null}
-        />
+        <OpenPlaysShowcase data={openPlays} />
       </main>
       <StoreFooter categories={navCats} />
     </div>
