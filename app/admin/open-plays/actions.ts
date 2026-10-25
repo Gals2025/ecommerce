@@ -31,3 +31,31 @@ export async function publishOpenPlays() {
  ON CONFLICT (id) DO UPDATE SET published = EXCLUDED.published, updated_at = now()`);
  revalidatePath("/"); revalidatePath("/admin/open-plays");
 }
+
+export async function deleteOpenPlayQr() {
+ await authorize();
+ const { draft, published } = await readShowcase();
+ const urls = [...new Set([draft.qrImageUrl, published.qrImageUrl].filter(Boolean))];
+ // Clear only QR fields, preserving every other saved draft/published value.
+ await db.execute(sql`UPDATE open_play_showcase SET
+ draft = jsonb_set(draft, '{qrImageUrl}', '""'::jsonb, true),
+ published = jsonb_set(published, '{qrImageUrl}', '""'::jsonb, true),
+ updated_at = now() WHERE id = 1`);
+ revalidatePath("/");
+ revalidatePath("/admin/open-plays");
+ // Delete only files inside this feature's Vercel Blob namespace.
+ const { del } = await import("@vercel/blob");
+ const managed = urls.filter(value => {
+  try {
+   const u = new URL(value);
+   return u.protocol === "https:" && u.hostname.endsWith(".public.blob.vercel-storage.com") && u.pathname.startsWith("/open-plays/qr/");
+  } catch { return false; }
+ });
+ if (managed.length) {
+  try { await del(managed); } catch {
+   // The QR is no longer published, but the blob may require manual cleanup.
+   return { cleaned: false };
+  }
+ }
+ return { cleaned: true };
+}
