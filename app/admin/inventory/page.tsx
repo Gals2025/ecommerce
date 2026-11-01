@@ -1,17 +1,23 @@
 import Link from "next/link";
 import { db } from "@/db";
 import { inventoryBalances, inventoryLocations, products, productVariants } from "@/db/schema";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, ilike, or } from "drizzle-orm";
 import { PageHeader } from "@/components/admin/page-header";
 import { PageGuard } from "@/components/admin/page-guard";
 import { ExportButtons } from "@/components/admin/export-buttons";
-import { Button, buttonVariants } from "@/components/ui";
+import { Button, buttonVariants, Input } from "@/components/ui";
 import { DbUnreachable, EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/cn";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminInventory() {
+export default async function AdminInventory({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const raw = await searchParams;
+  const q = (Array.isArray(raw.q) ? raw.q[0] : raw.q ?? "").trim();
   let rows: {
     sku: string; productName: string; locationCode: string;
     onHand: number; reserved: number;
@@ -30,6 +36,12 @@ export default async function AdminInventory() {
       .innerJoin(productVariants, eq(inventoryBalances.variantId, productVariants.id))
       .innerJoin(products, eq(productVariants.productId, products.id))
       .innerJoin(inventoryLocations, eq(inventoryBalances.locationId, inventoryLocations.id))
+      .where(q ? or(
+        ilike(products.name, `%${q}%`),
+        ilike(products.slug, `%${q}%`),
+        ilike(products.sku, `%${q}%`),
+        ilike(productVariants.sku, `%${q}%`),
+      ) : undefined)
       .orderBy(asc(products.name), asc(productVariants.sku));
     rows = data;
     totals = {
@@ -60,6 +72,13 @@ export default async function AdminInventory() {
         <Link href="/admin/inventory/low-stock" className={cn(buttonVariants({ variant: "utility" }), "no-underline")}>Low-stock report</Link>
         <Link href="/admin/inventory/out-of-stock" className={cn(buttonVariants({ variant: "utility" }), "no-underline")}>Out-of-stock report</Link>
       </div>
+      <form method="get" className="mb-4 flex flex-wrap items-end gap-2 rounded-lg border p-3">
+        <label className="w-full max-w-md text-xs">Search
+          <Input name="q" defaultValue={q} placeholder="Name, SKU, slug…" />
+        </label>
+        <Button type="submit" variant="secondary" size="sm">Apply</Button>
+        {q && <Link href="/admin/inventory" className="pb-1 text-sm text-gray-500 hover:underline">Reset</Link>}
+      </form>
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-left text-sm">
           <thead className="bg-gray-50">
