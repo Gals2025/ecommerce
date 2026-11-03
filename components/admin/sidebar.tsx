@@ -49,7 +49,7 @@ export function SidebarNav({ roles, onNavigate }: { roles: AppRole[]; onNavigate
               key={s.label}
               href={item.href}
               onClick={onNavigate}
-              className={cn("rounded-lg px-2 py-1.5 text-sm font-medium transition", isActive(pathname, item.href) && "bg-emerald-700 font-medium text-white shadow-sm")}
+              className={cn("rounded-lg px-2 py-1.5 text-sm font-medium transition", isActive(pathname, item.href) && "bg-brand-navy font-medium text-brand-lime shadow-sm")}
             >
               {item.label}
             </Link>
@@ -60,7 +60,7 @@ export function SidebarNav({ roles, onNavigate }: { roles: AppRole[]; onNavigate
             <button
               onClick={() => setOpen((o) => ({ ...o, [s.label]: !expanded }))}
               aria-expanded={expanded}
-              className={cn("flex w-full items-center justify-between px-2 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-stone-400", hasActive && "text-emerald-800")}
+              className={cn("flex w-full items-center justify-between px-2 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-stone-400", hasActive && "text-brand-navy")}
             >
               {s.label}
               <span aria-hidden>{expanded ? "▾" : "▸"}</span>
@@ -75,7 +75,7 @@ export function SidebarNav({ roles, onNavigate }: { roles: AppRole[]; onNavigate
                     aria-current={isActive(pathname, i.href) ? "page" : undefined}
                     className={cn(
                       "rounded-lg px-2 py-1.5 text-sm transition",
-                      isActive(pathname, i.href) ? "bg-emerald-700 font-medium text-white shadow-sm" : "text-stone-600 hover:bg-stone-100 hover:text-stone-900"
+                      isActive(pathname, i.href) ? "bg-brand-navy font-medium text-brand-lime shadow-sm" : "text-stone-600 hover:bg-stone-100 hover:text-stone-900"
                     )}
                   >
                     {i.label}

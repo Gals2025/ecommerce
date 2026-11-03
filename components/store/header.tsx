@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/components/brand-logo";
 import Link from "next/link";
 import { Search, ShoppingBag, User } from "lucide-react";
 import { getSession } from "@/lib/rbac";
@@ -19,7 +20,7 @@ export async function StoreHeader({ categories }: { categories: StoreNavCategory
   return (
     <header className="bg-white sm:sticky sm:top-0 sm:z-40 sm:shadow-sm">
       {/* Utility bar — desktop only to keep the mobile header compact */}
-      <div className="hidden bg-stone-900 text-white sm:block">
+      <div className="hidden bg-brand-navy text-white sm:block">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-1.5 text-[11px] sm:text-xs">
           <p className="truncate font-medium tracking-wide">
             Brand-new pickleball gear · Member prices on every order
@@ -34,9 +35,8 @@ export async function StoreHeader({ categories }: { categories: StoreNavCategory
       {/* Main bar — sticky on mobile, static on desktop (parent header sticks) */}
       <div className="sticky top-0 z-40 border-b border-stone-200/80 bg-white shadow-sm sm:static sm:z-auto sm:shadow-none">
         <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2 sm:gap-3 sm:py-3">
-          <Link href="/" className="flex shrink-0 items-baseline gap-1.5 tracking-tight">
-            <span className="font-display text-lg font-semibold sm:text-xl">Pickle Unltd</span>
-            <span className="hidden text-[11px] font-medium uppercase tracking-[0.18em] text-emerald-700 lg:inline">Pickleball</span>
+          <Link href="/" aria-label="PickleUNLTD home" className="shrink-0">
+            <BrandLogo />
           </Link>
           <form action="/shop" method="get" className="relative hidden min-w-0 flex-1 sm:block">
             <input
@@ -44,7 +44,7 @@ export async function StoreHeader({ categories }: { categories: StoreNavCategory
               placeholder="Search paddles, balls, apparel…"
               className="w-full rounded-full border border-stone-200 bg-stone-100/70 py-2.5 pl-4 pr-14 text-base outline-none transition placeholder:text-stone-400 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-600/15 sm:text-sm"
             />
-            <button type="submit" aria-label="Search" className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-stone-900 p-2.5 text-white transition hover:bg-emerald-800">
+            <button type="submit" aria-label="Search" className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-brand-navy p-2.5 text-white transition hover:bg-brand-lime-hover hover:text-brand-navy">
               <Search className="h-4 w-4" />
             </button>
           </form>
@@ -56,10 +56,10 @@ export async function StoreHeader({ categories }: { categories: StoreNavCategory
             <Link href="/account" className="inline-flex min-h-[40px] items-center rounded-full px-2.5 py-1 text-sm text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 md:hidden">
               {userId ? "Account" : "Sign in"}
             </Link>
-            <Link href="/cart" aria-label="Cart" className="relative flex h-10 w-10 items-center justify-center rounded-full bg-stone-900 font-medium text-white transition hover:bg-emerald-800 sm:h-auto sm:w-auto sm:min-h-[44px] sm:gap-1.5 sm:px-4 sm:py-2">
+            <Link href="/cart" aria-label="Cart" className="relative flex h-10 w-10 items-center justify-center rounded-full bg-brand-navy font-medium text-white transition hover:bg-brand-lime-hover hover:text-brand-navy sm:h-auto sm:w-auto sm:min-h-[44px] sm:gap-1.5 sm:px-4 sm:py-2">
               <ShoppingBag className="h-4 w-4" />
               <span className="hidden sm:inline">Cart</span>
-              {count > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-emerald-500 px-1.5 py-0.5 text-xs font-semibold text-white sm:static">{count}</span>}
+              {count > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-brand-lime px-1.5 py-0.5 text-xs font-semibold text-brand-navy sm:static">{count}</span>}
             </Link>
           </nav>
         </div>
@@ -70,7 +70,7 @@ export async function StoreHeader({ categories }: { categories: StoreNavCategory
               placeholder="Search paddles, balls, apparel…"
               className="w-full rounded-full border border-stone-200 bg-stone-100/70 py-2 pl-4 pr-12 text-base outline-none transition placeholder:text-stone-400 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-600/15 sm:text-sm"
             />
-            <button type="submit" aria-label="Search" className="absolute right-5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-stone-900 p-2 text-white transition hover:bg-emerald-800">
+            <button type="submit" aria-label="Search" className="absolute right-5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-brand-navy p-2 text-white transition hover:bg-brand-lime-hover hover:text-brand-navy">
               <Search className="h-4 w-4" />
             </button>
           </form>
@@ -80,11 +80,11 @@ export async function StoreHeader({ categories }: { categories: StoreNavCategory
       {categories.length > 0 && (
         <nav className="overflow-x-auto border-b border-stone-200/70 bg-white">
           <div className="mx-auto flex max-w-6xl items-center gap-1 whitespace-nowrap px-4 py-1 text-[13px] sm:py-2">
-            <Link href="/shop" className="flex min-h-[40px] items-center rounded-full bg-stone-900 px-3 py-1 font-medium text-white transition hover:bg-emerald-800 sm:min-h-[44px]">
+            <Link href="/shop" className="flex min-h-[40px] items-center rounded-full bg-brand-navy px-3 py-1 font-medium text-white transition hover:bg-brand-lime-hover hover:text-brand-navy sm:min-h-[44px]">
               Shop All
             </Link>
             {categories.map((c) => (
-              <Link key={c.id} href={`/shop?categoryId=${c.id}`} className="flex min-h-[40px] items-center rounded-full px-3 py-1 font-medium text-stone-600 transition hover:bg-emerald-50 hover:text-emerald-800 sm:min-h-[44px]">
+              <Link key={c.id} href={`/shop?categoryId=${c.id}`} className="flex min-h-[40px] items-center rounded-full px-3 py-1 font-medium text-stone-600 transition hover:bg-emerald-50 hover:text-brand-navy sm:min-h-[44px]">
                 {c.name}
               </Link>
             ))}
@@ -100,7 +100,7 @@ export async function StoreHeader({ categories }: { categories: StoreNavCategory
 
 export function StoreFooter({ categories = [] }: { categories?: StoreNavCategory[] }) {
   return (
-    <footer className="mt-16 bg-stone-950 text-stone-300">
+    <footer className="mt-16 bg-brand-navy text-stone-300">
       {/* Trust strip */}
       <div className="border-b border-white/10">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-3 px-4 py-5 text-xs sm:grid-cols-4">
@@ -119,7 +119,7 @@ export function StoreFooter({ categories = [] }: { categories?: StoreNavCategory
       </div>
       <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-4 py-10 text-sm sm:grid-cols-4">
         <div className="col-span-2 sm:col-span-1">
-          <div className="font-display text-lg font-semibold text-white">Pickle Unltd</div>
+          <BrandLogo tagline />
           <p className="mt-2 text-stone-400">Brand-new pickleball paddles, balls & sportswear, delivered across the Philippines.</p>
           <p className="mt-2 text-xs text-stone-500">All prices in Philippine Peso (₱).</p>
         </div>
@@ -152,7 +152,7 @@ export function StoreFooter({ categories = [] }: { categories?: StoreNavCategory
       </div>
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-stone-500">
-          <span>© {new Date().getFullYear()} Pickle Unltd. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} PickleUNLTD. All rights reserved.</span>
           <span className="text-white">Version {version}</span>
           <span className="font-medium tracking-wide">Gear up. Own the court.</span>
         </div>

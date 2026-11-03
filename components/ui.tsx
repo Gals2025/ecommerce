@@ -11,13 +11,13 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: "rounded-full bg-emerald-700 text-white shadow-sm hover:bg-emerald-800 hover:shadow",
-        secondary: "rounded-full bg-stone-900 text-white shadow-sm hover:bg-stone-700",
+        primary: "rounded-full bg-brand-lime text-brand-navy shadow-sm hover:bg-brand-lime-hover hover:text-brand-navy hover:shadow",
+        secondary: "rounded-full bg-brand-navy text-white shadow-sm hover:bg-stone-700",
         outline: "rounded-full border border-stone-300 bg-white text-stone-700 shadow-sm hover:border-stone-400 hover:bg-stone-50",
         danger: "rounded-full border border-red-200 bg-white text-red-700 shadow-sm hover:bg-red-50",
         utility: "rounded-lg border border-stone-200 bg-white text-xs text-stone-600 shadow-sm hover:border-stone-300 hover:bg-stone-50",
         utilityDanger: "rounded-lg border border-red-200 bg-white text-xs text-red-600 shadow-sm hover:bg-red-50",
-        link: "text-sm font-medium text-emerald-800 underline-offset-4 hover:underline",
+        link: "text-sm font-medium text-brand-navy underline-offset-4 hover:underline",
       },
       size: {
         xs: "px-2.5 py-1 text-xs",

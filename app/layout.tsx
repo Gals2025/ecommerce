@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Inter } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -7,19 +7,15 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-const displaySerif = Fraunces({
-  variable: "--font-display-serif",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: { default: "Pickle Unltd — Pickleball paddles, balls & apparel", template: "%s | Pickle Unltd" },
-  description: "Shop Pickle Unltd online for brand-new pickleball paddles, balls, sportswear and apparel. Cash on delivery, GCash, bank transfer, or pay in store. Metro Manila delivery and nationwide shipping.",
+  icons: { icon: "/brand/mark.png", apple: "/brand/mark.png" },
+  title: { default: "PickleUNLTD — Pickleball paddles, balls & apparel", template: "%s | PickleUNLTD" },
+  description: "Shop PickleUNLTD online for brand-new pickleball paddles, balls, sportswear and apparel. Cash on delivery, GCash, bank transfer, or pay in store. Metro Manila delivery and nationwide shipping.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   openGraph: {
     type: "website",
-    siteName: "Pickle Unltd",
-    title: "Pickle Unltd — Pickleball paddles, balls & apparel",
+    siteName: "PickleUNLTD",
+    title: "PickleUNLTD — Pickleball paddles, balls & apparel",
     description: "Brand-new pickleball paddles, balls, sportswear and apparel. Cash on delivery, GCash, bank transfer, or pay in store.",
   },
   twitter: { card: "summary_large_image" },
@@ -29,14 +25,14 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#1c1917",
+  themeColor: "#10284a",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${displaySerif.variable} h-full antialiased`}
+      className={`${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-stone-50 text-stone-900">{children}</body>
     </html>

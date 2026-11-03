@@ -2,16 +2,19 @@
 
 :root {
   --background: #fafaf9;
-  --foreground: #1c1917;
+  --foreground: #10284a;
 }
 
 @theme {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-display: var(--font-display-serif), Georgia, "Times New Roman", serif;
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --color-brand-navy: #10284a;
+  --color-brand-lime: #b0eb00;
+  --color-brand-lime-hover: #c3fa25;
 
   --color-canvas: #fafaf9;
   --color-surface: #ffffff;
-  --color-ink: #1c1917;
+  --color-ink: #10284a;
   --color-muted: #78716c;
   --color-line: #e7e5e4;
 
@@ -25,3 +28,5 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
+
+.brand-wordmark { font-weight: 900; font-style: italic; letter-spacing: -0.055em; line-height: 1; white-space: nowrap; }

@@ -1,4 +1,5 @@
 "use client";
+import { BrandLogo } from "@/components/brand-logo";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -15,8 +16,8 @@ export function AdminShell({ roles, children }: { roles: AppRole[]; children: Re
     <div className="flex min-h-screen">
       {/* Desktop sidebar */}
       <aside className="hidden w-64 shrink-0 border-r border-stone-200 bg-white p-4 lg:block">
-        <Link href="/admin" className="flex items-baseline gap-2">
-          <span className="font-display text-lg font-semibold tracking-tight">Pickle Unltd</span>
+        <Link href="/admin" className="flex flex-wrap items-center gap-2">
+          <BrandLogo className="gap-1 px-1 [&_.brand-wordmark]:text-base" />
           <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-emerald-800">Admin</span>
         </Link>
         <div className="mt-4"><SidebarNav roles={roles} /></div>
@@ -30,7 +31,7 @@ export function AdminShell({ roles, children }: { roles: AppRole[]; children: Re
           <div className="absolute inset-0 bg-stone-950/40 backdrop-blur-[2px]" onClick={() => setDrawer(false)} />
           <aside className="absolute left-0 top-0 h-full w-72 overflow-y-auto rounded-r-2xl bg-white p-4 shadow-lift">
             <div className="flex items-center justify-between">
-              <span className="font-display text-lg font-semibold">Pickle Unltd <span className="ml-1 rounded-full bg-emerald-50 px-2 py-0.5 align-middle text-[11px] font-sans font-semibold uppercase tracking-wider text-emerald-800">Admin</span></span>
+              <BrandLogo className="[&_.brand-wordmark]:text-base" />
               <button onClick={() => setDrawer(false)} aria-label="Close menu" className="rounded border px-2 py-1 text-sm">✕</button>
             </div>
             <div className="mt-4"><SidebarNav roles={roles} onNavigate={() => setDrawer(false)} /></div>

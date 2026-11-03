@@ -1,7 +1,7 @@
 import { formatPHP } from "@/lib/money";
 
 const wrap = (title: string, body: string) =>
-  `<div style="font-family:sans-serif;max-width:560px"><h2>${title}</h2>${body}<p style="color:#666;font-size:12px">Asia/Manila • amounts in Philippine Peso (₱)</p></div>`;
+  `<div style="font-family:sans-serif;max-width:560px"><div style="background:#10284a;color:#b0eb00;padding:20px;font-size:26px;font-weight:900;font-style:italic">PickleUNLTD</div><h2 style="color:#10284a">${title}</h2>${body}<p style="color:#666;font-size:12px">Asia/Manila • amounts in Philippine Peso (₱)</p></div>`;
 
 /** HTML-escape for user/admin-controlled values interpolated into templates. */
 export function esc(value: string | null | undefined): string {
