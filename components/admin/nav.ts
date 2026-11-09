@@ -43,6 +43,7 @@ export const ADMIN_NAV: NavSection[] = [
     label: "Sales",
     permissions: ["orders.verify_payment"],
     items: [
+      { label: "POS", href: "/admin/pos", permissions: ["orders.pos"] },
       { label: "Orders", href: "/admin/orders" },
       { label: "Payments", href: "/admin/payments" },
       { label: "Returns", href: "/admin/returns" },

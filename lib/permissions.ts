@@ -1,6 +1,7 @@
 import type { AppRole } from "./auth";
 
 export type Permission =
+  | "orders.pos"
   | "orders.verify_payment"
   | "orders.manage_fulfillment"
   | "orders.set_delivery_fee"
@@ -21,6 +22,7 @@ export type Permission =
 // Central role → permission map. Roles stay coarse; checks are granular.
 const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
   SUPER_ADMIN: [
+    "orders.pos",
     "orders.verify_payment",
     "orders.manage_fulfillment",
     "orders.set_delivery_fee",
@@ -39,6 +41,7 @@ const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     "settings.manage",
   ],
   ADMIN: [
+    "orders.pos",
     "orders.verify_payment",
     "orders.manage_fulfillment",
     "orders.set_delivery_fee",
