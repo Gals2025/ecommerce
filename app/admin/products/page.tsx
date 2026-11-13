@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { db } from "@/db";
-import { brands, categories, products } from "@/db/schema";
-import { and, asc, count, desc, eq, ilike, or, type SQL } from "drizzle-orm";
+import { brands, categories, products, productImages } from "@/db/schema";
+import { and, asc, count, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
+import { ProductThumbnail } from "@/components/admin/product-thumbnail";
 import { formatPHP } from "@/lib/money";
 import { productListParamsSchema } from "@/validators";
 import { PageHeader } from "@/components/admin/page-header";
@@ -78,7 +79,7 @@ export default async function AdminProducts({
 
   let rows: {
     id: string; name: string; slug: string; sku: string | null; basePrice: number;
-    status: string; featured: boolean; brandName: string | null; categoryName: string | null;
+    status: string; featured: boolean; brandName: string | null; categoryName: string | null; imageUrl: string | null;
   }[] = [];
   let total = 0;
   let dbError = false;
@@ -94,6 +95,7 @@ export default async function AdminProducts({
         id: products.id, name: products.name, slug: products.slug, sku: products.sku,
         basePrice: products.basePrice, status: products.status, featured: products.featured,
         brandName: brands.name, categoryName: categories.name,
+        imageUrl: sql<string | null>`(select ${productImages.url} from ${productImages} where ${productImages.productId} = ${products.id} order by ${productImages.sortOrder}, ${productImages.createdAt}, ${productImages.id} limit 1)`,
       })
       .from(products)
       .leftJoin(brands, eq(products.brandId, brands.id))
@@ -185,8 +187,13 @@ export default async function AdminProducts({
             {rows.map((r) => (
               <tr key={r.id} className="border-t">
                 <td className="px-3 py-2">
-                  <div className="font-medium">{r.name} {r.featured && <span className="text-xs text-amber-600">★</span>}</div>
-                  <div className="text-xs text-gray-500">{r.slug}</div>
+                  <div className="flex items-center gap-3">
+                    <ProductThumbnail src={r.imageUrl} name={r.name} />
+                    <div>
+                      <div className="font-medium">{r.name} {r.featured && <span className="text-xs text-amber-600">★</span>}</div>
+                      <div className="text-xs text-gray-500">{r.slug}</div>
+                    </div>
+                  </div>
                 </td>
                 <td className="px-3 py-2 text-xs">{r.sku ?? "—"}</td>
                 <td className="px-3 py-2 text-xs">{r.categoryName ?? "—"} / {r.brandName ?? "—"}</td>
