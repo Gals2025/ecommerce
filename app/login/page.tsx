@@ -1,5 +1,6 @@
 "use client";
 import { Suspense, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { signIn } from "@/lib/auth-client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getPostLoginPath } from "@/actions/auth";
@@ -12,6 +13,7 @@ function LoginForm() {
   const expired = search.get("expired") === "1";
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   return (
     <>
       {expired && (
@@ -49,7 +51,19 @@ function LoginForm() {
         }}
       >
         <Input name="email" type="email" required placeholder="Email" autoComplete="email" aria-label="Email" />
-        <Input name="password" type="password" required placeholder="Password" autoComplete="current-password" aria-label="Password" />
+        <div className="relative">
+          <Input id="login-password" name="password" type={showPassword ? "text" : "password"} required placeholder="Password" autoComplete="current-password" aria-label="Password" className="pr-12" />
+          <button
+            type="button"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-controls="login-password"
+            aria-pressed={showPassword}
+            onClick={() => setShowPassword((visible) => !visible)}
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-stone-500 transition hover:text-brand-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-navy"
+          >
+            {showPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
+          </button>
+        </div>
         <Button disabled={loading} className="w-full">
           {loading ? "Logging in…" : "Log in"}
         </Button>
