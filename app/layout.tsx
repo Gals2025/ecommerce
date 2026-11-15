@@ -8,7 +8,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  icons: { icon: "/brand/mark.png", apple: "/brand/mark.png" },
+  icons: {
+    icon: [
+      { url: "/brand/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/brand/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/brand/icon-192.png", sizes: "192x192", type: "image/png" }],
+  },
   title: { default: "PickleUNLTD — Pickleball paddles, balls & apparel", template: "%s | PickleUNLTD" },
   description: "Shop PickleUNLTD online for brand-new pickleball paddles, balls, sportswear and apparel. Cash on delivery, GCash, bank transfer, or pay in store. Metro Manila delivery and nationwide shipping.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
